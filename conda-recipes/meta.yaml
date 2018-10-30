@@ -1,0 +1,46 @@
+# Copyright (c) 2018, NVIDIA CORPORATION.
+
+# Usage:
+#   conda build -c defaults -c conda-forge .
+{% set version = environ.get('GIT_DESCRIBE_TAG', '0.0.0.dev').lstrip('v') %}
+{% set git_revision_count=environ.get('GIT_DESCRIBE_NUMBER', 0) %}
+package:
+  name: cuml
+  version: {{ version }}
+
+source:
+  path: ../..
+
+# build:
+#   number: {{ git_revision_count }}
+#   script_env:
+#     - CUML_BUILD_NO_GPU_TEST
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - numba>=0.40.0dev
+    - cython>=0.28.0
+    - cudf 0.2.0
+    - faiss-gpu
+  run:
+    - python
+    - setuptools
+    - pandas 0.20.*
+    - numba>=0.40.0dev
+    - cython>=0.28.0
+    - cudf 0.2.0
+
+test:
+  requires:
+    - pytest
+    - scikit-learn
+  imports:
+    - cudf
+
+about:
+  home: http://rapids.ai/
+  license: Apache-2.0
+  # license_file: LICENSE
+  summary: cuML Rapids Machine Learning Library
