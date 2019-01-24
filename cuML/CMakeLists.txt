@@ -42,8 +42,9 @@ endif(ZLIB_FOUND)
 # - Submodules ------------------------------------------------------------------------------------
 
 get_filename_component(DIR_ONE_ABOVE ../ ABSOLUTE)
+add_subdirectory(${DIR_ONE_ABOVE}/thirdparty/googletest)
 
-set(GTEST_DIR ${DIR_ONE_ABOVE}/thirdparty/googletest CACHE STRING
+set(GTEST_DIR googletest CACHE STRING
   "Path to the googletest repo")
 set(GTEST_LIBNAME "gtest_main" CACHE STRING
   "Name of the googletest library")
