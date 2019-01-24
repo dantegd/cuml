@@ -41,7 +41,7 @@ endif(ZLIB_FOUND)
 ###################################################################################################
 # - Submodules ------------------------------------------------------------------------------------
 
-set(GTEST_DIR ${PROJECT_SOURCE_DIR}/external/ml-prims/external/googletest CACHE STRING
+set(GTEST_DIR ${PROJECT_SOURCE_DIR}../thirdparty/googletest CACHE STRING
   "Path to the googletest repo")
 set(GTEST_LIBNAME "gtest_main" CACHE STRING
   "Name of the googletest library")
