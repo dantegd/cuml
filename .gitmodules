@@ -14,3 +14,6 @@
 [submodule "ml-prims/external/googletest"]
     path = ml-prims/external/googletest
     url = https://github.com/google/googletest
+[submodule "thirdparty/googletest"]
+	path = thirdparty/googletest
+	url = git@github.com:google/googletest.git
