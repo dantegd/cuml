@@ -22,7 +22,7 @@ from libcpp cimport bool
 import ctypes
 from libc.stdint cimport uintptr_t
 from c_dbscan cimport *
-from ..numba_utils import row_matrix
+from .numba_utils import row_matrix
 
 
 class DBSCAN:
