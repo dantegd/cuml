@@ -17,9 +17,7 @@
 
 set (CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
 cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
-project(cuML VERSION 0.5.0 LANGUAGES CXX CUDA)
-
-project(cuML VERSION 0.4.0 LANGUAGES CXX CUDA)
+project(cuML VERSION 0.6.0 LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -60,7 +58,7 @@ set(CUB_DIR ${PROJECT_SOURCE_DIR}/external/ml-prims/external/cub CACHE STRING
   "Path to cub repo")
 set(CUTLASS_DIR ${PROJECT_SOURCE_DIR}/external/ml-prims/external/cutlass CACHE STRING
   "Path to the cutlass repo")
-  
+
 ###################################################################################################
 # - User Options  ---------------------------------------------------------------------------------
 
@@ -212,8 +210,8 @@ target_link_libraries(ml_test
                       cuml
                       pthread
                       z)
-                      
-                      
+
+
 ###################################################################################################
 # - build test executable -------------------------------------------------------------------------
 
@@ -244,8 +242,8 @@ endif(NOT DISABLE_EXAMPLES OR NOT ${DISABLE_EXAMPLES})
 
 install(TARGETS cuml
         DESTINATION lib)
-        
 
 
-		
+
+
 
