@@ -20,8 +20,8 @@
 # cython: language_level = 3
 
 import ctypes
-import cudf
 import numpy as np
+import rmm
 
 from libcpp cimport bool
 from libc.stdint cimport uintptr_t, int64_t
@@ -29,8 +29,7 @@ from libc.stdlib cimport calloc, malloc, free
 
 from cuml.common.base import Base
 from cuml.common.handle cimport cumlHandle
-from cuml.utils import get_cudf_column_ptr, get_dev_array_ptr, \
-    input_to_dev_array, zeros
+from cuml.utils import get_dev_array_ptr, input_to_dev_array, zeros
 
 from collections import defaultdict
 
@@ -215,8 +214,8 @@ class DBSCAN(Base):
 
         cdef cumlHandle* handle_ = <cumlHandle*><size_t>self.handle.getHandle()
 
-        self.labels_ = cudf.Series(zeros(n_rows, dtype=out_dtype))
-        cdef uintptr_t labels_ptr = get_cudf_column_ptr(self.labels_)
+        self.labels_ = zeros(n_rows, dtype=out_dtype)
+        cdef uintptr_t labels_ptr = get_dev_array_ptr(self.labels_)
 
         if self.dtype == np.float32:
             if out_dtype is "int32" or out_dtype is np.int32:
