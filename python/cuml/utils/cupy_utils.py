@@ -74,6 +74,6 @@ def checked_cupy_unique(x):
         else:
             unique = np.unique(x.copy_to_host())
 
-        unique = cp.asarray(unique)
+        unique = np.asarray(unique)
 
     return unique
