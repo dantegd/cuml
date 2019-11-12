@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 import pytest
 
 from importlib import import_module
 
 from cuml.utils.import_utils import has_dask, has_cupy, has_ucp, \
     has_treelite, has_lightgbm, has_xgboost, has_pytest_benchmark
+from cuml.utils.cupy_utils import checked_cupy_unique
 
 
 functions_libraries = [
@@ -35,6 +37,16 @@ functions_libraries = [
 def test_has_library(fn_tuple):
     try:
         import_module(fn_tuple[1])
-        assert fn_tuple[0]
+        assert fn_tuple[0]()
     except ModuleNotFoundError:
-        assert not fn_tuple[0]
+        assert not fn_tuple[0]()
+
+
+def test_cupy_unique():
+    if has_cupy():
+        import cupy as cp
+        a = cp.arange(10)
+        assert isinstance(checked_cupy_unique(a), cp.ndarray)
+    else:
+        a = np.arange(10)
+        isinstance(checked_cupy_unique(a), np.ndarray)
