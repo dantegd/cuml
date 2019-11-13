@@ -253,6 +253,9 @@ inline OPT_RETCODE min_owlqn(const LBFGSParam<T> &param, Function &f,
   T xnorm = nrm2(x, dev_scalar, stream);
   T gnorm = nrm2(pseudo, dev_scalar, stream);
 
+  printf("Value of xnorm=%f\n", gnorm);
+  printf("Value of gnorm=%f\n", gnorm);
+
   if (param.past > 0) fx_hist[0] = fx;
 
   // Early exit if the initial x is already a minimizer
