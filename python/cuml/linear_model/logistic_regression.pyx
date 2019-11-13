@@ -21,7 +21,7 @@
 
 from cuml.solvers import QN
 from cuml.common.base import Base
-
+from cuml.metrics.accuracy import accuracy_score
 from cuml.utils import input_to_dev_array
 from cuml.utils.cupy_utils import checked_cupy_unique
 
@@ -115,8 +115,8 @@ class LogisticRegression(Base):
         Custom class weighs are currently not supported.
     max_iter: int (default = 1000)
         Maximum number of iterations taken for the solvers to converge.
-    verbose: bool (optional, default False)
-        Controls verbosity of logging.
+    verbose: int (optional, default 0)
+        Controls verbosity level of logging.
     l1_ratio: float or None, optional (default=None)
         The Elastic-Net mixing parameter, with `0 <= l1_ratio <= 1`
     solver: 'qn', 'lbfgs', 'owl' (default=qn).
@@ -150,13 +150,13 @@ class LogisticRegression(Base):
                  class_weight=None, max_iter=1000, verbose=0, l1_ratio=None,
                  solver='qn', handle=None):
 
-        super(LogisticRegression, self).__init__(handle=handle, verbose=False)
+        super(LogisticRegression, self).__init__(handle=handle, verbose=verbose)
 
         if class_weight:
-            raise ValueError("`class_weight` not supported.")
+            raise ValueError("`class_weight` not supported yet.")
 
         if penalty not in supported_penalties:
-            raise ValueError("`penalty` " + str(penalty) + "not supported.")
+            raise ValueError("`penalty` " + str(penalty) + " not supported.")
 
         if solver not in supported_solvers:
             raise ValueError("Only quasi-newton `qn` (lbfgs and owl) solvers "
@@ -252,7 +252,7 @@ class LogisticRegression(Base):
 
     def predict(self, X, convert_dtype=False):
         """
-        Predicts the y for X.
+        Fit the model with X and y.
 
         Parameters
         ----------
@@ -261,15 +261,33 @@ class LogisticRegression(Base):
             Acceptable formats: cuDF DataFrame, NumPy ndarray, Numba device
             ndarray, cuda array interface compliant array like CuPy
 
-        convert_dtype : bool, optional (default = False)
-            When set to True, the predict method will, when necessary, convert
-            the input to the data type which was used to train the model. This
-            will increase memory used for the method.
+        y : array-like (device or host) shape = (n_samples, 1)
+            Dense vector (floats or doubles) of shape (n_samples, 1).
+            Acceptable formats: cuDF Series, NumPy ndarray, Numba device
+            ndarray, cuda array interface compliant array like CuPy
 
-        Returns
-        ----------
-        y: cuDF DataFrame
-           Dense vector (floats or doubles) of shape (n_samples, 1)
+        convert_dtype : bool, optional (default = False)
+            When set to True, the fit method will, when necessary, convert
+            y to be the same data type as X if they differ. This
+            will increase memory used for the method.
 
         """
         return self.qn.predict(X, convert_dtype=convert_dtype)
+
+    def score(self, X, y, convert_dtype=False):
+        """
+        Calculates the accuracy metric score of the model for X.
+
+        X : array-like (device or host) shape = (n_samples, n_features)
+            Dense matrix (floats or doubles) of shape (n_samples, n_features).
+            Observations for which labels score will be calculated.
+            Acceptable formats: cuDF DataFrame, NumPy ndarray, Numba device
+            ndarray, cuda array interface compliant array like CuPy
+
+        y : array-like (device or host) shape = (n_samples, 1)
+            Dense vector (floats or doubles) of shape (n_samples, 1).
+            Ground truth labels to compare predictions to for the score.
+            Acceptable formats: cuDF Series, NumPy ndarray, Numba device
+            ndarray, cuda array interface compliant array like CuPy
+        """
+        return accuracy_score(y, self.predict(X), handle=self.handle)
