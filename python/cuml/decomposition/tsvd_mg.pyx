@@ -310,10 +310,16 @@ class TSVDMG(TruncatedSVD):
             free(<RankSizePair*>rankSizePair[idx])
         free(<RankSizePair**>rankSizePair)
 
-        self.components_ = cudf.DataFrame()
-        for i in range(0, params.n_cols):
-            n_c = params.n_components
-            self.components_[str(i)] = self.components_ary[i*n_c:(i+1)*n_c]
+        cdf = cudf.DataFrame()
+        cdf = cdf.from_gpu_matrix(
+            self.components_ary.reshape(params.n_rows,
+                                        params.n_components))
+        self.components_ = cdf
+
+        # self.components_ = cudf.DataFrame()
+        # for i in range(0, params.n_cols):
+        #     n_c = params.n_components
+        #     self.components_[str(i)] = self.components_ary[i*n_c:(i+1)*n_c]
 
         del(X_m)
 
