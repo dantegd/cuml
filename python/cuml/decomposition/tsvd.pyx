@@ -328,10 +328,16 @@ class TruncatedSVD(Base):
         # following transfers start
         self.handle.sync()
 
-        self.components_ = cudf.DataFrame()
-        for i in range(0, params.n_cols):
-            n_c = params.n_components
-            self.components_[str(i)] = self.components_ary[i*n_c:(i+1)*n_c]
+        cdf = cudf.DataFrame()
+        cdf = cdf.from_gpu_matrix(
+            self.components_ary.reshape(params.n_components,
+                                        params.n_cols))
+        self.components_ = cdf
+
+        # self.components_
+        # for i in range(0, params.n_cols):
+        #     n_c = params.n_components
+        #     self.components_[str(i)] = self.components_ary[i*n_c:(i+1)*n_c]
 
         if not _transform:
             del(self.trans_input_)
@@ -357,11 +363,15 @@ class TruncatedSVD(Base):
 
         """
         self.fit(X, _transform=True)
-        X_new = cudf.DataFrame()
         num_rows = self.n_rows
 
-        for i in range(0, self.n_components):
-            X_new[str(i)] = self.trans_input_[i*num_rows:(i+1)*num_rows]
+        X_new = cudf.DataFrame()
+        X_new = X_new.from_gpu_matrix(
+            self.components_ary.reshape(num_rows,
+                                        params.n_components))
+
+        # for i in range(0, self.n_components):
+        #     X_new[str(i)] = self.trans_input_[i*num_rows:(i+1)*num_rows]
 
         return X_new
 
@@ -427,9 +437,14 @@ class TruncatedSVD(Base):
         self.handle.sync()
 
         X_original = cudf.DataFrame()
-        for i in range(0, params.n_cols):
-            n_r = params.n_rows
-            X_original[str(i)] = input_data[i*n_r:(i+1)*n_r]
+        X_original = X_original.from_gpu_matrix(
+            self.components_ary.reshape(params.n_rows,
+                                        params.n_components))
+
+        # X_original = cudf.DataFrame()
+        # for i in range(0, params.n_cols):
+        #     n_r = params.n_rows
+        #     X_original[str(i)] = input_data[i*n_r:(i+1)*n_r]
 
         return X_original
 
@@ -494,8 +509,13 @@ class TruncatedSVD(Base):
         self.handle.sync()
 
         X_new = cudf.DataFrame()
-        for i in range(0, params.n_components):
-            X_new[str(i)] = t_input_data[i*params.n_rows:(i+1)*params.n_rows]
+        X_new = X_new.from_gpu_matrix(
+            self.components_ary.reshape(params.n_rows,
+                                        params.n_components))
+
+        # X_new = cudf.DataFrame()
+        # for i in range(0, params.n_components):
+        #     X_new[str(i)] = t_input_data[i*params.n_rows:(i+1)*params.n_rows]
 
         del(X_m)
         return X_new
