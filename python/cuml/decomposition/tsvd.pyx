@@ -367,8 +367,8 @@ class TruncatedSVD(Base):
 
         X_new = cudf.DataFrame()
         X_new = X_new.from_gpu_matrix(
-            sself.trans_input_.reshape(num_rows,
-                                       self.n_components))
+            self.trans_input_.reshape(num_rows,
+                                      self.n_components))
 
         # for i in range(0, self.n_components):
         #     X_new[str(i)] = self.trans_input_[i*num_rows:(i+1)*num_rows]
