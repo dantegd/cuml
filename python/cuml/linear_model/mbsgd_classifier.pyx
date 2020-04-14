@@ -169,6 +169,8 @@ class MBSGDClassifier(Base):
         self.coef_ = self.cu_mbsgd_classifier.coef_
         self.intercept_ = self.cu_mbsgd_classifier.intercept_
 
+        return self
+
     def predict(self, X, convert_dtype=False):
         """
         Predicts the y for X.
