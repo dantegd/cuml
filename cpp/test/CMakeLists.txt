@@ -14,62 +14,33 @@
 # limitations under the License.
 #=============================================================================
 
-set(COMMON_TEST_LINK_LIBRARIES
-  CUDA::cublas
-  CUDA::curand
-  CUDA::cusolver
-  CUDA::cudart
-  CUDA::cusparse
-  CUDA::cufft
-  rmm::rmm
-  raft::raft
-  FAISS::FAISS
-  GTest::gtest
-  GTest::gtest_main
-  OpenMP::OpenMP_CXX
-  Threads::Threads
-  $<IF:$<BOOL:${Treelite_ADDED}>,treelite::treelite_static,treelite::treelite>
-  $<IF:$<BOOL:${Treelite_ADDED}>,treelite::treelite_runtime_static,treelite::treelite_runtime>
+function(ConfigureTest CMAKE_TEST_NAME)
+  add_executable(${CMAKE_TEST_NAME} ${ARGN})
+
+  set(COMMON_TEST_LINK_LIBRARIES
+
+  )
+
+  target_link_libraries(${CUML_CPP_TEST_TARGET}
+  PRIVATE
+    ${CUML_CPP_TARGET}
+    $<$<BOOL:BUILD_CUML_C_LIBRARY>:${CUML_C_TARGET}>
+    CUDA::cublas
+    CUDA::curand
+    CUDA::cusolver
+    CUDA::cudart
+    CUDA::cusparse
+    CUDA::cufft
+    rmm::rmm
+    raft::raft
+    FAISS::FAISS
+    GTest::gtest
+    GTest::gtest_main
+    OpenMP_CXX_LIB_NAMES
+    Threads::Threads
+    $<IF:$<BOOL:${Treelite_ADDED}>,treelite::treelite_static,treelite::treelite>
+    $<IF:$<BOOL:${Treelite_ADDED}>,treelite::treelite_runtime_static,treelite::treelite_runtime>
   $<TARGET_NAME_IF_EXISTS:conda_env>
-)
-
-##############################################################################
-# - build ml_test executable -------------------------------------------------
-
-if(BUILD_CUML_TESTS)
-  # (please keep the filenames in alphabetical order)
-  add_executable(${CUML_CPP_TEST_TARGET}
-    sg/cd_test.cu
-    sg/dbscan_test.cu
-    sg/fil_test.cu
-    sg/fnv_hash_test.cpp
-    sg/genetic/node_test.cpp
-    sg/genetic/param_test.cu
-    sg/handle_test.cu
-    sg/hdbscan_test.cu
-    sg/holtwinters_test.cu
-    sg/kmeans_test.cu
-    sg/knn_test.cu
-    sg/lars_test.cu
-    sg/linkage_test.cu
-    sg/logger.cpp
-    sg/multi_sum_test.cu
-    sg/nvtx_test.cpp
-    sg/ols.cu
-    sg/pca_test.cu
-    sg/quasi_newton.cu
-    sg/rf_test.cu
-    sg/rf_treelite_test.cu
-    sg/ridge.cu
-    sg/rproj_test.cu
-    sg/sgd.cu
-    sg/shap_kernel.cu
-    sg/svc_test.cu
-    sg/trustworthiness_test.cu
-    sg/tsne_test.cu
-    sg/tsvd_test.cu
-    sg/umap_parametrizable_test.cu
-    $<$<BOOL:BUILD_CUML_C_LIBRARY>:sg/handle_test.cu>
   )
 
   target_compile_options(${CUML_CPP_TEST_TARGET}
@@ -85,12 +56,48 @@ if(BUILD_CUML_TESTS)
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/prims>
   )
 
-  target_link_libraries(${CUML_CPP_TEST_TARGET}
-    PRIVATE
-      cuml
-        $<$<BOOL:BUILD_CUML_C_LIBRARY>:${CUML_C_TARGET}>
-        ${COMMON_TEST_LINK_LIBRARIES}
-    )
+endfunction()
+
+##############################################################################
+# - build ml_test executable -------------------------------------------------
+
+if(BUILD_CUML_TESTS)
+  # (please keep the filenames in alphabetical order)
+  # add_executable(${CUML_CPP_TEST_TARGET}
+  #   sg/cd_test.cu
+  #   sg/dbscan_test.cu
+  #   sg/fil_test.cu
+  #   sg/fnv_hash_test.cpp
+  #   sg/genetic/node_test.cpp
+  #   sg/genetic/param_test.cu
+  #   sg/handle_test.cu
+  #   sg/hdbscan_test.cu
+  #   sg/holtwinters_test.cu
+  #   sg/kmeans_test.cu
+  #   sg/knn_test.cu
+  #   sg/lars_test.cu
+  #   sg/linkage_test.cu
+  #   sg/logger.cpp
+  #   sg/multi_sum_test.cu
+  #   sg/nvtx_test.cpp
+  #   sg/ols.cu
+  #   sg/pca_test.cu
+  #   sg/quasi_newton.cu
+  #   sg/rf_test.cu
+  #   sg/rf_treelite_test.cu
+  #   sg/ridge.cu
+  #   sg/rproj_test.cu
+  #   sg/sgd.cu
+  #   sg/shap_kernel.cu
+  #   sg/svc_test.cu
+  #   sg/trustworthiness_test.cu
+  #   sg/tsne_test.cu
+  #   sg/tsvd_test.cu
+  #   sg/umap_parametrizable_test.cu
+  #   $<$<BOOL:BUILD_CUML_C_LIBRARY>:sg/handle_test.cu>
+  # )
+
+  ConfigureTest(CD_TEST sg/cd_test.cpp)
 
 endif()
 
