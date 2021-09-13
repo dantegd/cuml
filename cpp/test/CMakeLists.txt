@@ -14,14 +14,20 @@
 # limitations under the License.
 #=============================================================================
 
-function(ConfigureTest CMAKE_TEST_NAME)
-  add_executable(${CMAKE_TEST_NAME} ${ARGN})
+function(ConfigureTest)
 
-  set(COMMON_TEST_LINK_LIBRARIES
+  set(options OPTIONAL FAISS)
+  set(oneValueArgs PREFIX NAME PATH)
+  set(multiValueArgs TARGETS CONFIGURATIONS)
 
-  )
+  cmake_parse_arguments(ConfigureTest "${options}" "${oneValueArgs}"
+                          "${multiValueArgs}" ${ARGN} )
 
-  target_link_libraries(${CUML_CPP_TEST_TARGET}
+  set(TEST_NAME ${ConfigureTest_PREFIX}_${ConfigureTest_NAME})
+
+  add_executable(${TEST_NAME} ${ConfigureTest_PATH})
+
+  target_link_libraries(${TEST_NAME}
   PRIVATE
     ${CUML_CPP_TARGET}
     $<$<BOOL:BUILD_CUML_C_LIBRARY>:${CUML_C_TARGET}>
@@ -36,25 +42,27 @@ function(ConfigureTest CMAKE_TEST_NAME)
     FAISS::FAISS
     GTest::gtest
     GTest::gtest_main
-    OpenMP_CXX_LIB_NAMES
+    OpenMP::OpenMP_CXX
     Threads::Threads
     $<IF:$<BOOL:${Treelite_ADDED}>,treelite::treelite_static,treelite::treelite>
     $<IF:$<BOOL:${Treelite_ADDED}>,treelite::treelite_runtime_static,treelite::treelite_runtime>
-  $<TARGET_NAME_IF_EXISTS:conda_env>
+    $<TARGET_NAME_IF_EXISTS:conda_env>
   )
 
-  target_compile_options(${CUML_CPP_TEST_TARGET}
+  target_compile_options(${TEST_NAME}
         PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${CUML_CXX_FLAGS}>"
                 "$<$<COMPILE_LANGUAGE:CUDA>:${CUML_CUDA_FLAGS}>"
   )
 
-  target_include_directories(${CUML_CPP_TEST_TARGET}
+  target_include_directories(${TEST_NAME}
     PRIVATE
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../src>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../src_prims>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/prims>
   )
+
+  add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 
 endfunction()
 
@@ -64,40 +72,73 @@ endfunction()
 if(BUILD_CUML_TESTS)
   # (please keep the filenames in alphabetical order)
   # add_executable(${CUML_CPP_TEST_TARGET}
-  #   sg/cd_test.cu
-  #   sg/dbscan_test.cu
-  #   sg/fil_test.cu
-  #   sg/fnv_hash_test.cpp
-  #   sg/genetic/node_test.cpp
-  #   sg/genetic/param_test.cu
-  #   sg/handle_test.cu
-  #   sg/hdbscan_test.cu
-  #   sg/holtwinters_test.cu
-  #   sg/kmeans_test.cu
-  #   sg/knn_test.cu
-  #   sg/lars_test.cu
-  #   sg/linkage_test.cu
-  #   sg/logger.cpp
-  #   sg/multi_sum_test.cu
-  #   sg/nvtx_test.cpp
-  #   sg/ols.cu
-  #   sg/pca_test.cu
-  #   sg/quasi_newton.cu
-  #   sg/rf_test.cu
-  #   sg/rf_treelite_test.cu
-  #   sg/ridge.cu
-  #   sg/rproj_test.cu
-  #   sg/sgd.cu
-  #   sg/shap_kernel.cu
-  #   sg/svc_test.cu
-  #   sg/trustworthiness_test.cu
-  #   sg/tsne_test.cu
-  #   sg/tsvd_test.cu
-  #   sg/umap_parametrizable_test.cu
+    # sg/cd_test.cu
+    # sg/dbscan_test.cu
+    # sg/fil_test.cu
+    # sg/fnv_hash_test.cpp
+    # sg/genetic/node_test.cpp
+    # sg/genetic/param_test.cu
+    # sg/handle_test.cu
+    # sg/hdbscan_test.cu
+    # sg/holtwinters_test.cu
+    # sg/kmeans_test.cu
+    # sg/knn_test.cu
+    # sg/lars_test.cu
+    # sg/linkage_test.cu
+    # sg/logger.cpp
+    # sg/multi_sum_test.cu
+    # sg/nvtx_test.cpp
+    # sg/ols.cu
+    # sg/pca_test.cu
+    # sg/quasi_newton.cu
+    # sg/rf_test.cu
+    # sg/rf_treelite_test.cu
+    # sg/ridge.cu
+    # sg/rproj_test.cu
+    # sg/sgd.cu
+    # sg/shap_kernel.cu
+    # sg/svc_test.cu
+    # sg/trustworthiness_test.cu
+    # sg/tsne_test.cu
+    # sg/tsvd_test.cu
+    # sg/umap_parametrizable_test.cu
   #   $<$<BOOL:BUILD_CUML_C_LIBRARY>:sg/handle_test.cu>
   # )
 
-  ConfigureTest(CD_TEST sg/cd_test.cpp)
+  ConfigureTest(PREFIX SG NAME CD_TEST PATH sg/cd_test.cu)
+  # ConfigureTest(DBSCAN_TEST sg/dbscan_test.cu)
+  # ConfigureTest(FIL_TEST sg/fil_test.cu)
+  # ConfigureTest(FNV_HASH_TEST sg/fnv_hash_test.cpp)
+  # ConfigureTest(GENETIC_NODE_TEST sg/genetic/node_test.cpp)
+  # ConfigureTest(GENETIC_PARAM_TEST sg/genetic/param_test.cu)
+  # ConfigureTest(HANDLE_TEST sg/handle_test.cu)
+  # ConfigureTest(HDBSCAN_TEST sg/hdbscan_test.cu)
+  # ConfigureTest(HOLTWINTERS_TEST sg/holtwinters_test.cu)
+  # ConfigureTest(KMEANS_TEST sg/kmeans_test.cu)
+  # ConfigureTest(KNN_TEST sg/knn_test.cu)
+  # ConfigureTest(LARS_TEST sg/lars_test.cu)
+  # ConfigureTest(LINKAGE_TEST sg/linkage_test.cu)
+  # ConfigureTest(LOGGER_TEST sg/logger.cpp)
+  # ConfigureTest(MULTI_SUM_TEST sg/multi_sum_test.cu)
+  # ConfigureTest(NVTX_TEST sg/nvtx_test.cpp)
+  # ConfigureTest(OLS_TEST sg/ols.cu)
+  # ConfigureTest(PCA_TEST sg/pca_test.cu)
+  # ConfigureTest(QUASI_NEWTON sg/quasi_newton.cu)
+  # ConfigureTest(RF_TEST sg/rf_test.cu)
+  # ConfigureTest(RF_TREELITE_TEST sg/rf_treelite_test.cu)
+  # ConfigureTest(RIDGE_TEST sg/ridge.cu)
+  # ConfigureTest(RPROJ_TEST sg/rproj_test.cu)
+  # ConfigureTest(SGD_TEST sg/sgd.cu)
+  # ConfigureTest(SHAP_KERNEL_TEST sg/shap_kernel.cu)
+  # ConfigureTest(SVC_TEST sg/svc_test.cu)
+  # ConfigureTest(TRUSTWORTHINESS_TEST sg/trustworthiness_test.cu)
+  # ConfigureTest(TSNE_TEST sg/tsne_test.cu)
+  # ConfigureTest(TSVD_TEST sg/tsvd_test.cu)
+  # ConfigureTest(UMAP_PARAMETRIZABLE_TEST sg/umap_parametrizable_test.cu)
+
+  # if(BUILD_CUML_C_LIBRARY)
+  #   ConfigureTest(HANDLE_TEST sg/handle_test.cu)
+  # endif()
 
 endif()
 
