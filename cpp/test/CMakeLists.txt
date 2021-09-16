@@ -75,6 +75,7 @@ if(BUILD_CUML_TESTS)
     # sg/cd_test.cu
     # sg/dbscan_test.cu
     # sg/fil_test.cu
+    # sg/fil_child_index_test.cu
     # sg/fnv_hash_test.cpp
     # sg/genetic/node_test.cpp
     # sg/genetic/param_test.cu
