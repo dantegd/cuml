@@ -40,6 +40,7 @@ import functools
 import numpy as np
 import os
 import pandas as pd
+import cupy as cp
 
 import cuml.datasets
 import sklearn.model_selection
@@ -58,7 +59,8 @@ def _gen_data_regression(n_samples, n_features, random_state=42):
     if n_features == 0:
         n_features = 100
     X_arr, y_arr = cuml.datasets.make_regression(
-        n_samples=n_samples, n_features=n_features, random_state=random_state)
+        n_samples=n_samples, n_features=n_features, random_state=random_state,
+        dtype=np.float64)
     return cudf.DataFrame(X_arr), cudf.Series(y_arr)
 
 
@@ -70,18 +72,18 @@ def _gen_data_blobs(n_samples, n_features, random_state=42, centers=None):
         n_samples = 100
     X_arr, y_arr = cuml.datasets.make_blobs(
         n_samples=n_samples, n_features=n_features, centers=centers,
-        random_state=random_state)
+        random_state=random_state, dtype=np.float64)
     return (
-        cudf.DataFrame(X_arr.astype(np.float32)),
-        cudf.Series(y_arr.astype(np.float32)),
+        cudf.DataFrame(X_arr),
+        cudf.Series(y_arr),
     )
 
 
 def _gen_data_zeros(n_samples, n_features, random_state=42):
     """Dummy generator for use in testing - returns all 0s"""
     return (
-        cudf.DataFrame(np.zeros((n_samples, n_features), dtype=np.float32)),
-        cudf.Series(np.zeros(n_samples, dtype=np.float32)),
+        cudf.DataFrame(np.zeros((n_samples, n_features), dtype=np.float64)),
+        cudf.Series(np.zeros(n_samples, dtype=np.float64)),
     )
 
 
@@ -96,11 +98,11 @@ def _gen_data_classification(
 
     X_arr, y_arr = cuml.datasets.make_classification(
         n_samples=n_samples, n_features=n_features, n_classes=n_classes,
-        random_state=random_state)
+        random_state=random_state, dtype=np.float64)
 
     return (
-        cudf.DataFrame(X_arr.astype(np.float32)),
-        cudf.Series(y_arr.astype(np.float32)),
+        cudf.DataFrame(X_arr),
+        cudf.Series(y_arr),
     )
 
 
@@ -150,7 +152,7 @@ def load_higgs():
         "col-{}".format(i) for i in range(2, 30)
     ]  # Assign column names
     dtypes_ls = [np.int32] + [
-        np.float32 for _ in range(2, 30)
+        np.float64 for _ in range(2, 30)
     ]  # Assign dtypes to each column
     data_df = pd.read_csv(
         decompressed_filepath, names=col_names,
@@ -217,10 +219,10 @@ def _convert_to_gpuarray(data, order='F'):
                                     order=order)
     elif isinstance(data, pd.Series):
         gs = cudf.Series.from_pandas(data)
-        return cuda.as_cuda_array(gs)
+        return cp.array(gs)
     else:
         return input_utils.input_to_cuml_array(
-            data, order=order)[0].to_output("numba")
+            data, order=order)[0].to_output("cupy")
 
 
 def _convert_to_gpuarray_c(data):
@@ -347,3 +349,4 @@ def gen_data(
 
     data = _data_converters[dataset_format](data)
     return data
+

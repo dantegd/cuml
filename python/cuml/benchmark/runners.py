@@ -220,6 +220,8 @@ class AccuracyComparisonRunner(SpeedupComparisonRunner):
             **dataset_param_overrides
         )
 
+        print("Using data of dtype: {}".format(data[0].dtype))
+
         setup_override = algo_pair.setup_cuml(
             data, **{**param_overrides, **cuml_param_overrides}
         )
@@ -371,3 +373,4 @@ def run_variations(
     print(results_df)
 
     return results_df
+
