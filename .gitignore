@@ -54,3 +54,6 @@ docs/source/*.model
 
 ## doxygen build check inside ci/checks/style.sh
 doxygen_check/
+
+# Sphinx docs & build artifacts
+ docs/cuml/source/api_docs/api/*

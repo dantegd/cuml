@@ -39,17 +39,18 @@ from github_link import make_linkcode_resolve # noqa
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'numpydoc',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.linkcode',
+    "numpydoc",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.linkcode",
     "IPython.sphinxext.ipython_console_highlighting",
     "IPython.sphinxext.ipython_directive",
     "nbsphinx",
     "recommonmark",
     "sphinx_markdown_tables",
+    "sphinx_copybutton"
 ]
 
 ipython_mplbackend = "str"
@@ -71,8 +72,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'cuml'
-copyright = '2020, nvidia'
-author = 'nvidia'
+copyright = '2018-2022, NVIDIA'
+author = 'NVIDIA'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -107,7 +108,7 @@ todo_include_todos = False
 # a list of builtin themes.
 #
 
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'pydata_sphinx_theme'
 
 # on_rtd is whether we are on readthedocs.org
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
@@ -116,15 +117,21 @@ if not on_rtd:
     # only import and set the theme if we're building docs locally
     # otherwise, readthedocs.org uses their theme by default,
     # so no need to specify it
-    import sphinx_rtd_theme
-    html_theme = 'sphinx_rtd_theme'
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+    import pydata_sphinx_theme
+    html_theme = 'pydata_sphinx_theme'
+    html_theme_path = [pydata_sphinx_theme.get_html_theme_path()]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+    "external_links": [],
+    "github_url": "https://github.com/rapidsai/cuml",
+    "twitter_url": "https://twitter.com/rapidsai",
+    "show_toc_level": 1,
+    "navbar_align": "right",
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -193,7 +200,6 @@ numpydoc_class_members_toctree = False
 
 
 def setup(app):
-    app.add_css_file('copybutton.css')
     app.add_css_file('infoboxes.css')
     app.add_css_file('params.css')
     app.add_css_file('references.css')

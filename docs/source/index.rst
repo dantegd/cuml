@@ -14,19 +14,14 @@ cuML is fully open source, and the RAPIDS team welcomes new and seasoned
 contributors, users and hobbyists! Thank you for your wonderful support!
 
 An installation requirement for cuML is that your system must be Linux-like.
-Support for Windows is possible in the near future.
+There is experimental support for Windows using WSL2.
 
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   api.rst
-
-   cuml_intro.rst
-   cuml_blogs.rst
-   estimator_intro.ipynb
-   pickling_cuml_models.ipynb
+   api_docs/index
 
 
 Indices and tables
