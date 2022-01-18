@@ -119,7 +119,7 @@ if not on_rtd:
     # so no need to specify it
     import pydata_sphinx_theme
     html_theme = 'pydata_sphinx_theme'
-    html_theme_path = [pydata_sphinx_theme.get_html_theme_path()]
+    html_theme_path = pydata_sphinx_theme.get_html_theme_path()
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
