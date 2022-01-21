@@ -3,35 +3,36 @@ Clustering
 ==========
 .. currentmodule::cuml
 
+
 K-Means Clustering
 --------------------
 .. autosummary::
+    :nosignatures:
     :toctree: api/
 
-.. autoclass:: cuml.KMeans
-    :members:
+    cuml.KMeans
 
 DBSCAN
 -------
 .. autosummary::
+    :nosignatures:
     :toctree: api/
 
-.. autoclass:: cuml.DBSCAN
-    :members:
+    cuml.DBSCAN
 
 Agglomerative Clustering
 ------------------------
 .. autosummary::
+    :nosignatures:
     :toctree: api/
 
-.. autoclass:: cuml.AgglomerativeClustering
-    :members:
+    cuml.AgglomerativeClustering
 
 
 HDBSCAN
 -------
 .. autosummary::
+    :nosignatures:
     :toctree: api/
 
-.. autoclass:: cuml.cluster.HDBSCAN
-   :members:
+    cuml.HDBSCAN

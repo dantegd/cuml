@@ -117,9 +117,9 @@ if not on_rtd:
     # only import and set the theme if we're building docs locally
     # otherwise, readthedocs.org uses their theme by default,
     # so no need to specify it
-    import pydata_sphinx_theme
+    # import pydata_sphinx_theme
     html_theme = 'pydata_sphinx_theme'
-    html_theme_path = pydata_sphinx_theme.get_html_theme_path()
+    # html_theme_path = pydata_sphinx_theme.get_html_theme_path()
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -129,7 +129,7 @@ html_theme_options = {
     "external_links": [],
     "github_url": "https://github.com/rapidsai/cuml",
     "twitter_url": "https://twitter.com/rapidsai",
-    "show_toc_level": 1,
+    "show_toc_level": 2,
     "navbar_align": "right",
 }
 
@@ -143,7 +143,7 @@ html_js_files = ["example_mod.js"]
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'cuMLdoc'
+htmlhelp_basename = 'cumldoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -215,3 +215,4 @@ linkcode_resolve = make_linkcode_resolve(
 # backticks`) to be a python object. See
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-default_role
 default_role = "py:obj"
+

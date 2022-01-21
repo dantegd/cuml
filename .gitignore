@@ -57,3 +57,5 @@ doxygen_check/
 
 # Sphinx docs & build artifacts
  docs/cuml/source/api_docs/api/*
+docs/source/checkpoint.tl
+docs/source/kmeans_model.pkl
