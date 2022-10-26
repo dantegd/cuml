@@ -28,7 +28,7 @@ import cuml.common.cuda
 import cuml.internals.logger as logger
 import cuml.internals
 import pylibraft.common.handle
-import cuml.common.input_utils
+import cuml.internals.input_utils
 from cuml.internals.input_utils import input_to_cuml_array
 from cuml.internals.input_utils import input_to_host_array
 from cuml.internals.array import CumlArray
