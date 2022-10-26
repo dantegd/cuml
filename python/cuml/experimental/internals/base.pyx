@@ -25,7 +25,7 @@ import nvtx
 import cuml
 import cuml.common
 import cuml.common.cuda
-import cuml.common.logger as logger
+import cuml.internals.logger as logger
 import cuml.internals
 import pylibraft.common.handle
 import cuml.common.input_utils
