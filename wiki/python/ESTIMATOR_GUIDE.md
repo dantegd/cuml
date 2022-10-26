@@ -58,7 +58,7 @@ At a high level, all cuML Estimators must:
    ```
 4. Declare each array-like attribute the new Estimator will compute as a class variable for automatic array type conversion
    ```python
-   from cuml.internals.array_descriptor import CumlArrayDescriptor
+   from cuml.common.array import CumlArrayDescriptor
 
    class MyEstimator(Base):
 
@@ -240,7 +240,7 @@ So this needs to be taken into account for tag resolution, for the case above, t
 
 ### Estimator Array-Like Attributes
 
-Any array-like attribute stored in an estimator needs to be convertible to the user's desired output type. To make it easier to store array-like objects in a class that derives from `Base`, the `cuml.internals.array_descriptor.CumlArrayDescriptor` was created. The `CumlArrayDescriptor` class is a Python descriptor object which allows cuML to implement customized attribute lookup, storage and deletion code that can be reused on all estimators.
+Any array-like attribute stored in an estimator needs to be convertible to the user's desired output type. To make it easier to store array-like objects in a class that derives from `Base`, the `cuml.common.array.CumlArrayDescriptor` was created. The `CumlArrayDescriptor` class is a Python descriptor object which allows cuML to implement customized attribute lookup, storage and deletion code that can be reused on all estimators.
 
 The `CumlArrayDescriptor` behaves different when accessed internally (from within one of `cuml`'s functions) vs. externally (for user code outside the cuml module). Internally, it behaves exactly like a normal attribute and will return the previous value set. Externally, the array will get converted to the user's desired output type lazily and repeated conversion will be cached.
 
@@ -251,7 +251,7 @@ Performing the arrray conversion lazily (i.e. converting the input array to the 
 To use the `CumlArrayDescriptor` in an estimator, any array-like attributes need to be specified by creating a `CumlArrayDescriptor` as a class variable.
 
 ```python
-from cuml.internals.array_descriptor import CumlArrayDescriptor
+from cuml.common.array import CumlArrayDescriptor
 
 class TestEstimator(cuml.Base):
 
@@ -271,7 +271,7 @@ Once an `CumlArrayDescriptor` attribute has been defined, developers can use the
 ```python
 import cupy as cp
 import cuml
-from cuml.internals.array_descriptor import CumlArrayDescriptor
+from cuml.common.array import CumlArrayDescriptor
 
 class SampleEstimator(cuml.Base):
 

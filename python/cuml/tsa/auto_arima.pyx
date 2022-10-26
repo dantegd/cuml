@@ -29,7 +29,7 @@ import cupy as cp
 
 import cuml.internals
 from cuml.internals import logger
-from cuml.internals.array_descriptor import CumlArrayDescriptor
+from cuml.common.array import CumlArrayDescriptor
 from cuml.internals.array import CumlArray
 from cuml.internals.base import Base
 from cuml.internals import _deprecate_pos_args

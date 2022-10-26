@@ -18,14 +18,16 @@ import threading
 from cuml.internals.available_devices import is_cuda_available
 from cuml.internals.device_type import DeviceType
 from cuml.internals.mem_type import MemoryType
-from cuml.internals.safe_imports import cpu_only_import, gpu_only_import
+from cuml.internals.safe_imports import (
+    cpu_only_import, gpu_only_import, gpu_only_import_from
+)
 from cuml.internals.logger import warn
 
 cp = gpu_only_import('cupy')
 np = cpu_only_import('numpy')
 
 cuda_gpu_present = gpu_only_import_from(
-    'rmm',
+    'rmm._cuda.gpu',
     'getDeviceCount',
 )
 
