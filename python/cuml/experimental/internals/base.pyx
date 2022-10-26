@@ -34,7 +34,7 @@ from cuml.internals.input_utils import input_to_host_array
 from cuml.internals.array import CumlArray
 
 from cuml.common.doc_utils import generate_docstring
-from cuml.mixins.mixins import TagsMixin
+from cuml.internals.mixins import TagsMixin
 from cuml.common.device_selection import DeviceType
 
 
