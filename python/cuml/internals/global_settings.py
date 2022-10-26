@@ -15,7 +15,6 @@
 #
 
 import threading
-from cuml.common.cuda import BUILT_WITH_CUDA, has_cuda_gpu
 from cuml.internals.available_devices import is_cuda_available
 from cuml.internals.device_type import DeviceType
 from cuml.internals.mem_type import MemoryType
@@ -24,6 +23,22 @@ from cuml.internals.logger import warn
 
 cp = gpu_only_import('cupy')
 np = cpu_only_import('numpy')
+
+cuda_gpu_present = gpu_only_import_from(
+    'rmm',
+    'getDeviceCount',
+)
+
+
+BUILT_WITH_CUDA = True
+
+
+def has_cuda_gpu():
+    try:
+       dc = cuda_gpu_present()
+       return dc >= 1
+    except UnavailableError:
+        return False
 
 
 class _GlobalSettingsData(threading.local):  # pylint: disable=R0903
