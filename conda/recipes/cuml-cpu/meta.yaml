@@ -33,6 +33,8 @@ requirements:
   run:
     - python x.x
     - scikit-learn=1.2
+    - hdbscan=0.8.29
+    - umap-learn=0.5.3
 
 tests:                                 # [linux64]
   imports:                             # [linux64]
