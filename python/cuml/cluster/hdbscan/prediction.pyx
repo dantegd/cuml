@@ -43,9 +43,9 @@ from cuml.internals.import_utils import has_hdbscan_plots
 from cuml.internals.import_utils import has_hdbscan_prediction
 
 import cuml
-from cuml.metrics.distance_type cimport DistanceType
 
 IF GPUBUILD == 1:
+    from cuml.metrics.distance_type cimport DistanceType
     from pylibraft.common.handle cimport handle_t
     cdef extern from "cuml/cluster/hdbscan.hpp" namespace "ML::HDBSCAN::Common":
 
@@ -109,14 +109,14 @@ IF GPUBUILD == 1:
                                    int* out_labels,
                                    float* out_probabilities)
 
-_metrics_mapping = {
-    'l1': DistanceType.L1,
-    'cityblock': DistanceType.L1,
-    'manhattan': DistanceType.L1,
-    'l2': DistanceType.L2SqrtExpanded,
-    'euclidean': DistanceType.L2SqrtExpanded,
-    'cosine': DistanceType.CosineExpanded
-}
+    _metrics_mapping = {
+        'l1': DistanceType.L1,
+        'cityblock': DistanceType.L1,
+        'manhattan': DistanceType.L1,
+        'l2': DistanceType.L2SqrtExpanded,
+        'euclidean': DistanceType.L2SqrtExpanded,
+        'cosine': DistanceType.CosineExpanded
+    }
 
 
 def all_points_membership_vectors(clusterer):

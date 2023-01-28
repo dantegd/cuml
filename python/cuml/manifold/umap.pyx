@@ -49,7 +49,6 @@ from cuml.internals.array import CumlArray
 from cuml.internals.array_sparse import SparseCumlArray
 from cuml.internals.mixins import CMajorInputTagMixin
 from cuml.common.sparse_utils import is_sparse
-from cuml.metrics.distance_type cimport DistanceType
 
 from cuml.manifold.simpl_set import fuzzy_simplicial_set, \
     simplicial_set_embedding
@@ -70,6 +69,7 @@ from libcpp.memory cimport shared_ptr
 
 
 IF GPUBUILD == 1:
+    from cuml.metrics.distance_type cimport DistanceType
     from cuml.manifold.umap_utils cimport *
     from pylibraft.common.handle cimport handle_t
     cdef extern from "cuml/manifold/umap.hpp" namespace "ML::UMAP":
@@ -788,9 +788,9 @@ class UMAP(UniversalBase,
                           <int> self._raw_data.shape[0],
                           <UMAPParams*> umap_params,
                           <float*> xformed_ptr)
-        self.handle.sync()
+            self.handle.sync()
 
-        UMAP._destroy_umap_params(<size_t>umap_params)
+            UMAP._destroy_umap_params(<size_t>umap_params)
 
         del X_m
         return embedding
