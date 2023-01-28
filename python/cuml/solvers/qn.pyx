@@ -195,8 +195,9 @@ class QNParams(StructParams):
 
     @staticmethod
     def get_param_defaults():
-        cdef qn_params ps
-        return ps
+        IF GPUBUILD == 1:
+            cdef qn_params ps
+            return ps
 
     @property
     def loss(self) -> str:
@@ -491,68 +492,67 @@ class QN(Base,
                                                       else None))
             sample_weight_ptr = sample_weight.ptr
 
-        self.qnparams = QNParams(
-            loss=self.loss,
-            penalty_l1=self.l1_strength,
-            penalty_l2=self.l2_strength,
-            grad_tol=self.tol,
-            change_tol=self.delta
-            if self.delta is not None else (self.tol * 0.01),
-            max_iter=self.max_iter,
-            linesearch_max_iter=self.linesearch_max_iter,
-            lbfgs_memory=self.lbfgs_memory,
-            verbose=self.verbose,
-            fit_intercept=self.fit_intercept,
-            penalty_normalized=self.penalty_normalized
-        )
-
-        cdef qn_params qnpams = self.qnparams.params
-
-        solves_classification = qnpams.loss in {
-            qn_loss_type.QN_LOSS_LOGISTIC,
-            qn_loss_type.QN_LOSS_SOFTMAX,
-            qn_loss_type.QN_LOSS_SVC_L1,
-            qn_loss_type.QN_LOSS_SVC_L2
-        }
-        solves_multiclass = qnpams.loss in {
-            qn_loss_type.QN_LOSS_SOFTMAX
-        }
-
-        if solves_classification:
-            self._num_classes = len(cp.unique(y_m))
-        else:
-            self._num_classes = 1
-
-        if not solves_multiclass and self._num_classes > 2:
-            raise ValueError(
-                f"The selected solver ({self.loss}) does not support"
-                f" more than 2 classes ({self._num_classes} discovered).")
-
-        if qnpams.loss == qn_loss_type.QN_LOSS_SOFTMAX \
-           and self._num_classes <= 2:
-            raise ValueError("Two classes or less cannot be trained"
-                             "with softmax (multinomial).")
-
-        if solves_classification and not solves_multiclass:
-            self._num_classes_dim = self._num_classes - 1
-        else:
-            self._num_classes_dim = self._num_classes
-
-        if self.fit_intercept:
-            coef_size = (self.n_cols + 1, self._num_classes_dim)
-        else:
-            coef_size = (self.n_cols, self._num_classes_dim)
-
-        if self._coef_ is None or not self.warm_start:
-            self._coef_ = CumlArray.zeros(
-                coef_size, dtype=self.dtype, order='C')
-
-        cdef uintptr_t coef_ptr = self._coef_.ptr
-
-        cdef float objective32
-        cdef double objective64
-
         IF GPUBUILD == 1:
+            self.qnparams = QNParams(
+                loss=self.loss,
+                penalty_l1=self.l1_strength,
+                penalty_l2=self.l2_strength,
+                grad_tol=self.tol,
+                change_tol=self.delta
+                if self.delta is not None else (self.tol * 0.01),
+                max_iter=self.max_iter,
+                linesearch_max_iter=self.linesearch_max_iter,
+                lbfgs_memory=self.lbfgs_memory,
+                verbose=self.verbose,
+                fit_intercept=self.fit_intercept,
+                penalty_normalized=self.penalty_normalized
+            )
+
+            cdef qn_params qnpams = self.qnparams.params
+
+            solves_classification = qnpams.loss in {
+                qn_loss_type.QN_LOSS_LOGISTIC,
+                qn_loss_type.QN_LOSS_SOFTMAX,
+                qn_loss_type.QN_LOSS_SVC_L1,
+                qn_loss_type.QN_LOSS_SVC_L2
+            }
+            solves_multiclass = qnpams.loss in {
+                qn_loss_type.QN_LOSS_SOFTMAX
+            }
+
+            if solves_classification:
+                self._num_classes = len(cp.unique(y_m))
+            else:
+                self._num_classes = 1
+
+            if not solves_multiclass and self._num_classes > 2:
+                raise ValueError(
+                    f"The selected solver ({self.loss}) does not support"
+                    f" more than 2 classes ({self._num_classes} discovered).")
+
+            if qnpams.loss == qn_loss_type.QN_LOSS_SOFTMAX \
+               and self._num_classes <= 2:
+                raise ValueError("Two classes or less cannot be trained"
+                                 "with softmax (multinomial).")
+
+            if solves_classification and not solves_multiclass:
+                self._num_classes_dim = self._num_classes - 1
+            else:
+                self._num_classes_dim = self._num_classes
+
+            if self.fit_intercept:
+                coef_size = (self.n_cols + 1, self._num_classes_dim)
+            else:
+                coef_size = (self.n_cols, self._num_classes_dim)
+
+            if self._coef_ is None or not self.warm_start:
+                self._coef_ = CumlArray.zeros(
+                    coef_size, dtype=self.dtype, order='C')
+
+            cdef uintptr_t coef_ptr = self._coef_.ptr
+
+            cdef float objective32
+            cdef double objective64
             cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
 
             cdef int num_iters
@@ -910,16 +910,17 @@ class QN(Base,
         Retrieves the number of classes from the classes dimension
         in the coefficients.
         """
-        cdef qn_params qnpams = self.qnparams.params
-        solves_classification = qnpams.loss in {
-            qn_loss_type.QN_LOSS_LOGISTIC,
-            qn_loss_type.QN_LOSS_SOFTMAX,
-            qn_loss_type.QN_LOSS_SVC_L1,
-            qn_loss_type.QN_LOSS_SVC_L2
-        }
-        solves_multiclass = qnpams.loss in {
-            qn_loss_type.QN_LOSS_SOFTMAX
-        }
+        IF GPUBUILD == 1:
+            cdef qn_params qnpams = self.qnparams.params
+            solves_classification = qnpams.loss in {
+                qn_loss_type.QN_LOSS_LOGISTIC,
+                qn_loss_type.QN_LOSS_SOFTMAX,
+                qn_loss_type.QN_LOSS_SVC_L1,
+                qn_loss_type.QN_LOSS_SVC_L2
+            }
+            solves_multiclass = qnpams.loss in {
+                qn_loss_type.QN_LOSS_SOFTMAX
+            }
         if solves_classification and not solves_multiclass:
             _num_classes = _num_classes_dim + 1
         else:

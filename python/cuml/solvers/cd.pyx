@@ -331,7 +331,7 @@ class CD(Base,
         cdef uintptr_t preds_ptr = preds.ptr
 
         IF GPUBUILD == 1:
-        cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
+            cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
 
             if self.dtype == np.float32:
                 cdPredict(handle_[0],

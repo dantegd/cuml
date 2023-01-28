@@ -406,7 +406,7 @@ class TruncatedSVD(UniversalBase,
                                      dtype=dtype, index=X_m.index)
 
         cdef uintptr_t trans_input_ptr = X_m.ptr
-        cdef uintptr_t input_ptr = input_data.ptr
+        cdef uintptr_t input_ptr = input_data.ptrgi
         cdef uintptr_t components_ptr = self.components_.ptr
 
         IF GPUBUILD == 1:

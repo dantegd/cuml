@@ -29,7 +29,6 @@ from cuml.internals.safe_imports import gpu_only_import
 cupy = gpu_only_import('cupy')
 cupyx = gpu_only_import('cupyx')
 
-from cuml.manifold.umap_utils cimport *
 from cuml.manifold.umap_utils import GraphHolder, find_ab_params
 
 from cuml.common.sparsefuncs import extract_knn_graph
@@ -71,6 +70,7 @@ from libcpp.memory cimport shared_ptr
 
 
 IF GPUBUILD == 1:
+    from cuml.manifold.umap_utils cimport *
     from pylibraft.common.handle cimport handle_t
     cdef extern from "cuml/manifold/umap.hpp" namespace "ML::UMAP":
 
@@ -408,76 +408,78 @@ class UMAP(UniversalBase,
 
     @staticmethod
     def _build_umap_params(cls):
-        cdef UMAPParams* umap_params = new UMAPParams()
-        umap_params.n_neighbors = <int> cls.n_neighbors
-        umap_params.n_components = <int> cls.n_components
-        umap_params.n_epochs = <int> cls.n_epochs if cls.n_epochs else 0
-        umap_params.learning_rate = <float> cls.learning_rate
-        umap_params.min_dist = <float> cls.min_dist
-        umap_params.spread = <float> cls.spread
-        umap_params.set_op_mix_ratio = <float> cls.set_op_mix_ratio
-        umap_params.local_connectivity = <float> cls.local_connectivity
-        umap_params.repulsion_strength = <float> cls.repulsion_strength
-        umap_params.negative_sample_rate = <int> cls.negative_sample_rate
-        umap_params.transform_queue_size = <int> cls.transform_queue_size
-        umap_params.verbosity = <int> cls.verbose
-        umap_params.a = <float> cls.a
-        umap_params.b = <float> cls.b
-        if cls.init == "spectral":
-            umap_params.init = <int> 1
-        else:  # self.init == "random"
-            umap_params.init = <int> 0
-        umap_params.target_n_neighbors = <int> cls.target_n_neighbors
-        if cls.target_metric == "euclidean":
-            umap_params.target_metric = MetricType.EUCLIDEAN
-        else:  # self.target_metric == "categorical"
-            umap_params.target_metric = MetricType.CATEGORICAL
-        umap_params.target_weight = <float> cls.target_weight
-        umap_params.random_state = <uint64_t> cls.random_state
-        umap_params.deterministic = <bool> cls.deterministic
+        IF GPUBUILD == 1:
+            cdef UMAPParams* umap_params = new UMAPParams()
+            umap_params.n_neighbors = <int> cls.n_neighbors
+            umap_params.n_components = <int> cls.n_components
+            umap_params.n_epochs = <int> cls.n_epochs if cls.n_epochs else 0
+            umap_params.learning_rate = <float> cls.learning_rate
+            umap_params.min_dist = <float> cls.min_dist
+            umap_params.spread = <float> cls.spread
+            umap_params.set_op_mix_ratio = <float> cls.set_op_mix_ratio
+            umap_params.local_connectivity = <float> cls.local_connectivity
+            umap_params.repulsion_strength = <float> cls.repulsion_strength
+            umap_params.negative_sample_rate = <int> cls.negative_sample_rate
+            umap_params.transform_queue_size = <int> cls.transform_queue_size
+            umap_params.verbosity = <int> cls.verbose
+            umap_params.a = <float> cls.a
+            umap_params.b = <float> cls.b
+            if cls.init == "spectral":
+                umap_params.init = <int> 1
+            else:  # self.init == "random"
+                umap_params.init = <int> 0
+            umap_params.target_n_neighbors = <int> cls.target_n_neighbors
+            if cls.target_metric == "euclidean":
+                umap_params.target_metric = MetricType.EUCLIDEAN
+            else:  # self.target_metric == "categorical"
+                umap_params.target_metric = MetricType.CATEGORICAL
+            umap_params.target_weight = <float> cls.target_weight
+            umap_params.random_state = <uint64_t> cls.random_state
+            umap_params.deterministic = <bool> cls.deterministic
 
-        # metric
-        metric_parsing = {
-            "l2": DistanceType.L2SqrtUnexpanded,
-            "euclidean": DistanceType.L2SqrtUnexpanded,
-            "sqeuclidean": DistanceType.L2Unexpanded,
-            "cityblock": DistanceType.L1,
-            "l1": DistanceType.L1,
-            "manhattan": DistanceType.L1,
-            "taxicab": DistanceType.L1,
-            "minkowski": DistanceType.LpUnexpanded,
-            "chebyshev": DistanceType.Linf,
-            "linf": DistanceType.Linf,
-            "cosine": DistanceType.CosineExpanded,
-            "correlation": DistanceType.CorrelationExpanded,
-            "hellinger": DistanceType.HellingerExpanded,
-            "hamming": DistanceType.HammingUnexpanded,
-            "jaccard": DistanceType.JaccardExpanded,
-            "canberra": DistanceType.Canberra
-        }
+            # metric
+            metric_parsing = {
+                "l2": DistanceType.L2SqrtUnexpanded,
+                "euclidean": DistanceType.L2SqrtUnexpanded,
+                "sqeuclidean": DistanceType.L2Unexpanded,
+                "cityblock": DistanceType.L1,
+                "l1": DistanceType.L1,
+                "manhattan": DistanceType.L1,
+                "taxicab": DistanceType.L1,
+                "minkowski": DistanceType.LpUnexpanded,
+                "chebyshev": DistanceType.Linf,
+                "linf": DistanceType.Linf,
+                "cosine": DistanceType.CosineExpanded,
+                "correlation": DistanceType.CorrelationExpanded,
+                "hellinger": DistanceType.HellingerExpanded,
+                "hamming": DistanceType.HammingUnexpanded,
+                "jaccard": DistanceType.JaccardExpanded,
+                "canberra": DistanceType.Canberra
+            }
 
-        if cls.metric.lower() in metric_parsing:
-            umap_params.metric = metric_parsing[cls.metric.lower()]
-        else:
-            raise ValueError("Invalid value for metric: {}"
-                             .format(cls.metric))
+            if cls.metric.lower() in metric_parsing:
+                umap_params.metric = metric_parsing[cls.metric.lower()]
+            else:
+                raise ValueError("Invalid value for metric: {}"
+                                 .format(cls.metric))
 
-        if cls.metric_kwds is None:
-            umap_params.p = <float> 2.0
-        else:
-            umap_params.p = <float>cls.metric_kwds.get('p')
+            if cls.metric_kwds is None:
+                umap_params.p = <float> 2.0
+            else:
+                umap_params.p = <float>cls.metric_kwds.get('p')
 
-        cdef uintptr_t callback_ptr = 0
-        if cls.callback:
-            callback_ptr = cls.callback.get_native_callback()
-            umap_params.callback = <GraphBasedDimRedCallback*>callback_ptr
+            cdef uintptr_t callback_ptr = 0
+            if cls.callback:
+                callback_ptr = cls.callback.get_native_callback()
+                umap_params.callback = <GraphBasedDimRedCallback*>callback_ptr
 
-        return <size_t>umap_params
+            return <size_t>umap_params
 
     @staticmethod
     def _destroy_umap_params(ptr):
-        cdef UMAPParams* umap_params = <UMAPParams*> <size_t> ptr
-        free(umap_params)
+        IF GPUBUILD == 1:
+            cdef UMAPParams* umap_params = <UMAPParams*> <size_t> ptr
+            free(umap_params)
 
     @staticmethod
     def find_ab_params(spread, min_dist):
@@ -562,9 +564,6 @@ class UMAP(UniversalBase,
 
         cdef uintptr_t embed_raw = self.embedding_.ptr
 
-        cdef UMAPParams* umap_params = \
-            <UMAPParams*> <size_t> UMAP._build_umap_params(self)
-
         cdef uintptr_t y_raw = 0
 
         if y is not None:
@@ -577,6 +576,8 @@ class UMAP(UniversalBase,
 
         fss_graph = GraphHolder.new_graph(handle_.get_stream())
         IF GPUBUILD == 1:
+            cdef UMAPParams* umap_params = \
+                <UMAPParams*> <size_t> UMAP._build_umap_params(self)
             if self.sparse_fit:
                 fit_sparse(handle_[0],
                            <int*><uintptr_t> self._raw_data.indptr.ptr,
