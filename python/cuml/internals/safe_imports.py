@@ -18,12 +18,7 @@
 import importlib
 import traceback
 from cuml.internals.device_support import CPU_ENABLED, GPU_ENABLED
-
-# currently the logger is GPU-only, temporary functions
-if GPU_ENABLED:
-    from cuml.internals import logger
-else:
-    import logging as logger
+from cuml.internals import logger
 
 
 class UnavailableError(Exception):

@@ -16,9 +16,8 @@
 set(cython_sources
      base.pyx
      internals.pyx
+     logger.pyx
 )
-
-add_module_gpu_default("logger.pyx")
 
 rapids_cython_create_modules(
   CXX
