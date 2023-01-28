@@ -559,9 +559,6 @@ class UMAP(UniversalBase,
         if self.hash_input:
             self._input_hash = joblib.hash(self._raw_data.to_output('numpy'))
 
-        cdef handle_t * handle_ = \
-            <handle_t*> <size_t> self.handle.getHandle()
-
         cdef uintptr_t embed_raw = self.embedding_.ptr
 
         cdef uintptr_t y_raw = 0
@@ -574,8 +571,10 @@ class UMAP(UniversalBase,
                                                       else None))
             y_raw = y_m.ptr
 
-        fss_graph = GraphHolder.new_graph(handle_.get_stream())
         IF GPUBUILD == 1:
+            cdef handle_t * handle_ = \
+                <handle_t*> <size_t> self.handle.getHandle()
+            fss_graph = GraphHolder.new_graph(handle_.get_stream())
             cdef UMAPParams* umap_params = \
                 <UMAPParams*> <size_t> UMAP._build_umap_params(self)
             if self.sparse_fit:
@@ -603,11 +602,11 @@ class UMAP(UniversalBase,
                     <float*>embed_raw,
                     <COO*> fss_graph.get())
 
-        self.graph_ = fss_graph.get_cupy_coo()
+            self.graph_ = fss_graph.get_cupy_coo()
 
-        self.handle.sync()
+            self.handle.sync()
 
-        UMAP._destroy_umap_params(<size_t>umap_params)
+            UMAP._destroy_umap_params(<size_t>umap_params)
 
         return self
 
@@ -754,10 +753,9 @@ class UMAP(UniversalBase,
 
         cdef uintptr_t embed_ptr = self.embedding_.ptr
 
-        cdef UMAPParams* umap_params = \
-            <UMAPParams*> <size_t> UMAP._build_umap_params(self)
-
         IF GPUBUILD == 1:
+            cdef UMAPParams* umap_params = \
+                <UMAPParams*> <size_t> UMAP._build_umap_params(self)
             cdef handle_t * handle_ = \
                 <handle_t*> <size_t> self.handle.getHandle()
             if self.sparse_fit:

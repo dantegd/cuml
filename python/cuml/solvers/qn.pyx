@@ -202,44 +202,46 @@ class QNParams(StructParams):
     @property
     def loss(self) -> str:
         loss = self._getparam('loss')
-        if loss == qn_loss_type.QN_LOSS_LOGISTIC:
-            return "sigmoid"
-        if loss == qn_loss_type.QN_LOSS_SQUARED:
-            return "l2"
-        if loss == qn_loss_type.QN_LOSS_SOFTMAX:
-            return "softmax"
-        if loss == qn_loss_type.QN_LOSS_SVC_L1:
-            return "svc_l1"
-        if loss == qn_loss_type.QN_LOSS_SVC_L2:
-            return "svc_l2"
-        if loss == qn_loss_type.QN_LOSS_SVR_L1:
-            return "svr_l1"
-        if loss == qn_loss_type.QN_LOSS_SVR_L2:
-            return "svr_l2"
-        if loss == qn_loss_type.QN_LOSS_ABS:
-            return "l1"
+        IF GPUBUILD == 1:
+            if loss == qn_loss_type.QN_LOSS_LOGISTIC:
+                return "sigmoid"
+            if loss == qn_loss_type.QN_LOSS_SQUARED:
+                return "l2"
+            if loss == qn_loss_type.QN_LOSS_SOFTMAX:
+                return "softmax"
+            if loss == qn_loss_type.QN_LOSS_SVC_L1:
+                return "svc_l1"
+            if loss == qn_loss_type.QN_LOSS_SVC_L2:
+                return "svc_l2"
+            if loss == qn_loss_type.QN_LOSS_SVR_L1:
+                return "svr_l1"
+            if loss == qn_loss_type.QN_LOSS_SVR_L2:
+                return "svr_l2"
+            if loss == qn_loss_type.QN_LOSS_ABS:
+                return "l1"
         raise ValueError(f"Unknown loss enum value: {loss}")
 
     @loss.setter
     def loss(self, loss: str):
-        if loss in {"sigmoid", "logistic"}:
-            self._setparam('loss', qn_loss_type.QN_LOSS_LOGISTIC)
-        elif loss == "softmax":
-            self._setparam('loss', qn_loss_type.QN_LOSS_SOFTMAX)
-        elif loss in {"normal", "l2"}:
-            self._setparam('loss', qn_loss_type.QN_LOSS_SQUARED)
-        elif loss == "l1":
-            self._setparam('loss', qn_loss_type.QN_LOSS_ABS)
-        elif loss == "svc_l1":
-            self._setparam('loss', qn_loss_type.QN_LOSS_SVC_L1)
-        elif loss == "svc_l2":
-            self._setparam('loss', qn_loss_type.QN_LOSS_SVC_L2)
-        elif loss == "svr_l1":
-            self._setparam('loss', qn_loss_type.QN_LOSS_SVR_L1)
-        elif loss == "svr_l2":
-            self._setparam('loss', qn_loss_type.QN_LOSS_SVR_L2)
-        else:
-            raise ValueError(f"Unknown loss string value: {loss}")
+        IF GPUBUILD == 1:
+            if loss in {"sigmoid", "logistic"}:
+                self._setparam('loss', qn_loss_type.QN_LOSS_LOGISTIC)
+            elif loss == "softmax":
+                self._setparam('loss', qn_loss_type.QN_LOSS_SOFTMAX)
+            elif loss in {"normal", "l2"}:
+                self._setparam('loss', qn_loss_type.QN_LOSS_SQUARED)
+            elif loss == "l1":
+                self._setparam('loss', qn_loss_type.QN_LOSS_ABS)
+            elif loss == "svc_l1":
+                self._setparam('loss', qn_loss_type.QN_LOSS_SVC_L1)
+            elif loss == "svc_l2":
+                self._setparam('loss', qn_loss_type.QN_LOSS_SVC_L2)
+            elif loss == "svr_l1":
+                self._setparam('loss', qn_loss_type.QN_LOSS_SVR_L1)
+            elif loss == "svr_l2":
+                self._setparam('loss', qn_loss_type.QN_LOSS_SVR_L2)
+            else:
+                raise ValueError(f"Unknown loss string value: {loss}")
 
 
 class QN(Base,
@@ -627,7 +629,7 @@ class QN(Base,
 
                 self.objective = objective64
 
-        self.num_iters = num_iters
+            self.num_iters = num_iters
 
         self._calc_intercept()
 
@@ -710,9 +712,9 @@ class QN(Base,
             )
 
         _num_classes = self.get_num_classes(_num_classes_dim)
-        cdef qn_params qnpams = self.qnparams.params
 
         IF GPUBUILD == 1:
+            cdef qn_params qnpams = self.qnparams.params
             cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
             if dtype == np.float32:
                 if sparse_input:
@@ -921,11 +923,11 @@ class QN(Base,
             solves_multiclass = qnpams.loss in {
                 qn_loss_type.QN_LOSS_SOFTMAX
             }
-        if solves_classification and not solves_multiclass:
-            _num_classes = _num_classes_dim + 1
-        else:
-            _num_classes = _num_classes_dim
-        return _num_classes
+            if solves_classification and not solves_multiclass:
+                _num_classes = _num_classes_dim + 1
+            else:
+                _num_classes = _num_classes_dim
+            return _num_classes
 
     def _calc_intercept(self):
         """

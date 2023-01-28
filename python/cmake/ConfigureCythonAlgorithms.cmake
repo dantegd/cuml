@@ -15,7 +15,6 @@
 
 function(add_module_gpu_default FILENAME)
     set (extra_args ${ARGN})
-    message(VERBOSE "@@@@@ extra_args: ${extra_args}")
     list(LENGTH extra_args extra_count)
     if (${extra_count} GREATER 0 OR
         ${CUML_UNIVERSAL})
