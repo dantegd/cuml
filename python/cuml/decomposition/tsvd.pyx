@@ -409,9 +409,8 @@ class TruncatedSVD(UniversalBase,
         cdef uintptr_t input_ptr = input_data.ptr
         cdef uintptr_t components_ptr = self.components_.ptr
 
-        cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
-
         IF GPUBUILD == 1:
+            cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
             if dtype.type == np.float32:
                 tsvdInverseTransform(handle_[0],
                                      <float*> trans_input_ptr,
@@ -463,9 +462,8 @@ class TruncatedSVD(UniversalBase,
         cdef uintptr_t trans_input_ptr = t_input_data.ptr
         cdef uintptr_t components_ptr = self.components_.ptr
 
-        cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
-
         IF GPUBUILD == 1:
+            cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
             if dtype.type == np.float32:
                 tsvdTransform(handle_[0],
                               <float*> input_ptr,

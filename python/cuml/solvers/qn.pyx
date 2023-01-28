@@ -30,116 +30,117 @@ from cuml.common.array_descriptor import CumlArrayDescriptor
 from cuml.internals.array_sparse import SparseCumlArray
 from cuml.internals.global_settings import GlobalSettings
 from cuml.common.doc_utils import generate_docstring
-from pylibraft.common.handle cimport handle_t
 from cuml.common import input_to_cuml_array
 from cuml.internals.mixins import FMajorInputTagMixin
 from cuml.common.sparse_utils import is_sparse
 from cuml.metrics import accuracy_score
 
 
-cdef extern from "cuml/linear_model/glm.hpp" namespace "ML::GLM" nogil:
+IF GPUBUILD == 1:
+    from pylibraft.common.handle cimport handle_t
+    cdef extern from "cuml/linear_model/glm.hpp" namespace "ML::GLM" nogil:
 
-    cdef enum qn_loss_type "ML::GLM::qn_loss_type":
-        QN_LOSS_LOGISTIC "ML::GLM::QN_LOSS_LOGISTIC"
-        QN_LOSS_SQUARED  "ML::GLM::QN_LOSS_SQUARED"
-        QN_LOSS_SOFTMAX  "ML::GLM::QN_LOSS_SOFTMAX"
-        QN_LOSS_SVC_L1   "ML::GLM::QN_LOSS_SVC_L1"
-        QN_LOSS_SVC_L2   "ML::GLM::QN_LOSS_SVC_L2"
-        QN_LOSS_SVR_L1   "ML::GLM::QN_LOSS_SVR_L1"
-        QN_LOSS_SVR_L2   "ML::GLM::QN_LOSS_SVR_L2"
-        QN_LOSS_ABS      "ML::GLM::QN_LOSS_ABS"
-        QN_LOSS_UNKNOWN  "ML::GLM::QN_LOSS_UNKNOWN"
+        cdef enum qn_loss_type "ML::GLM::qn_loss_type":
+            QN_LOSS_LOGISTIC "ML::GLM::QN_LOSS_LOGISTIC"
+            QN_LOSS_SQUARED  "ML::GLM::QN_LOSS_SQUARED"
+            QN_LOSS_SOFTMAX  "ML::GLM::QN_LOSS_SOFTMAX"
+            QN_LOSS_SVC_L1   "ML::GLM::QN_LOSS_SVC_L1"
+            QN_LOSS_SVC_L2   "ML::GLM::QN_LOSS_SVC_L2"
+            QN_LOSS_SVR_L1   "ML::GLM::QN_LOSS_SVR_L1"
+            QN_LOSS_SVR_L2   "ML::GLM::QN_LOSS_SVR_L2"
+            QN_LOSS_ABS      "ML::GLM::QN_LOSS_ABS"
+            QN_LOSS_UNKNOWN  "ML::GLM::QN_LOSS_UNKNOWN"
 
-    cdef struct qn_params:
-        qn_loss_type loss
-        double penalty_l1
-        double penalty_l2
-        double grad_tol
-        double change_tol
-        int max_iter
-        int linesearch_max_iter
-        int lbfgs_memory
-        int verbose
-        bool fit_intercept
-        bool penalty_normalized
+        cdef struct qn_params:
+            qn_loss_type loss
+            double penalty_l1
+            double penalty_l2
+            double grad_tol
+            double change_tol
+            int max_iter
+            int linesearch_max_iter
+            int lbfgs_memory
+            int verbose
+            bool fit_intercept
+            bool penalty_normalized
 
-    void qnFit[T, I](
-        const handle_t& cuml_handle,
-        const qn_params& pams,
-        T *X,
-        bool X_col_major,
-        T *y,
-        I N,
-        I D,
-        I C,
-        T *w0,
-        T *f,
-        int *num_iters,
-        T *sample_weight) except +
+        void qnFit[T, I](
+            const handle_t& cuml_handle,
+            const qn_params& pams,
+            T *X,
+            bool X_col_major,
+            T *y,
+            I N,
+            I D,
+            I C,
+            T *w0,
+            T *f,
+            int *num_iters,
+            T *sample_weight) except +
 
-    void qnFitSparse[T, I](
-        const handle_t& cuml_handle,
-        const qn_params& pams,
-        T *X_values,
-        I *X_cols,
-        I *X_row_ids,
-        I X_nnz,
-        T *y,
-        I N,
-        I D,
-        I C,
-        T *w0,
-        T *f,
-        int *num_iters,
-        T *sample_weight) except +
+        void qnFitSparse[T, I](
+            const handle_t& cuml_handle,
+            const qn_params& pams,
+            T *X_values,
+            I *X_cols,
+            I *X_row_ids,
+            I X_nnz,
+            T *y,
+            I N,
+            I D,
+            I C,
+            T *w0,
+            T *f,
+            int *num_iters,
+            T *sample_weight) except +
 
-    void qnDecisionFunction[T, I](
-        const handle_t& cuml_handle,
-        const qn_params& pams,
-        T *X,
-        bool X_col_major,
-        I N,
-        I D,
-        I C,
-        T *params,
-        T *scores) except +
+        void qnDecisionFunction[T, I](
+            const handle_t& cuml_handle,
+            const qn_params& pams,
+            T *X,
+            bool X_col_major,
+            I N,
+            I D,
+            I C,
+            T *params,
+            T *scores) except +
 
-    void qnDecisionFunctionSparse[T, I](
-        const handle_t& cuml_handle,
-        const qn_params& pams,
-        T *X_values,
-        I *X_cols,
-        I *X_row_ids,
-        I X_nnz,
-        I N,
-        I D,
-        I C,
-        T *params,
-        T *scores) except +
+        void qnDecisionFunctionSparse[T, I](
+            const handle_t& cuml_handle,
+            const qn_params& pams,
+            T *X_values,
+            I *X_cols,
+            I *X_row_ids,
+            I X_nnz,
+            I N,
+            I D,
+            I C,
+            T *params,
+            T *scores) except +
 
-    void qnPredict[T, I](
-        const handle_t& cuml_handle,
-        const qn_params& pams,
-        T *X,
-        bool X_col_major,
-        I N,
-        I D,
-        I C,
-        T *params,
-        T *preds) except +
+        void qnPredict[T, I](
+            const handle_t& cuml_handle,
+            const qn_params& pams,
+            T *X,
+            bool X_col_major,
+            I N,
+            I D,
+            I C,
+            T *params,
+            T *preds) except +
 
-    void qnPredictSparse[T, I](
-        const handle_t& cuml_handle,
-        const qn_params& pams,
-        T *X_values,
-        I *X_cols,
-        I *X_row_ids,
-        I X_nnz,
-        I N,
-        I D,
-        I C,
-        T *params,
-        T *preds) except +
+        void qnPredictSparse[T, I](
+            const handle_t& cuml_handle,
+            const qn_params& pams,
+            T *X_values,
+            I *X_cols,
+            I *X_row_ids,
+            I X_nnz,
+            I N,
+            I D,
+            I C,
+            T *params,
+            T *preds) except +
 
 
 class StructWrapper(type):
@@ -550,79 +551,81 @@ class QN(Base,
 
         cdef float objective32
         cdef double objective64
-        cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
 
-        cdef int num_iters
+        IF GPUBUILD == 1:
+            cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
 
-        if self.dtype == np.float32:
-            if sparse_input:
-                qnFitSparse[float, int](
-                    handle_[0],
-                    qnpams,
-                    <float*><uintptr_t> X_m.data.ptr,
-                    <int*><uintptr_t> X_m.indices.ptr,
-                    <int*><uintptr_t> X_m.indptr.ptr,
-                    <int> X_m.nnz,
-                    <float*> y_ptr,
-                    <int> n_rows,
-                    <int> self.n_cols,
-                    <int> self._num_classes,
-                    <float*> coef_ptr,
-                    <float*> &objective32,
-                    <int*> &num_iters,
-                    <float*> sample_weight_ptr)
+            cdef int num_iters
 
-            else:
-                qnFit[float, int](
-                    handle_[0],
-                    qnpams,
-                    <float*><uintptr_t> X_m.ptr,
-                    <bool> __is_col_major(X_m),
-                    <float*> y_ptr,
-                    <int> n_rows,
-                    <int> self.n_cols,
-                    <int> self._num_classes,
-                    <float*> coef_ptr,
-                    <float*> &objective32,
-                    <int*> &num_iters,
-                    <float*> sample_weight_ptr)
+            if self.dtype == np.float32:
+                if sparse_input:
+                    qnFitSparse[float, int](
+                        handle_[0],
+                        qnpams,
+                        <float*><uintptr_t> X_m.data.ptr,
+                        <int*><uintptr_t> X_m.indices.ptr,
+                        <int*><uintptr_t> X_m.indptr.ptr,
+                        <int> X_m.nnz,
+                        <float*> y_ptr,
+                        <int> n_rows,
+                        <int> self.n_cols,
+                        <int> self._num_classes,
+                        <float*> coef_ptr,
+                        <float*> &objective32,
+                        <int*> &num_iters,
+                        <float*> sample_weight_ptr)
 
-            self.objective = objective32
+                else:
+                    qnFit[float, int](
+                        handle_[0],
+                        qnpams,
+                        <float*><uintptr_t> X_m.ptr,
+                        <bool> __is_col_major(X_m),
+                        <float*> y_ptr,
+                        <int> n_rows,
+                        <int> self.n_cols,
+                        <int> self._num_classes,
+                        <float*> coef_ptr,
+                        <float*> &objective32,
+                        <int*> &num_iters,
+                        <float*> sample_weight_ptr)
 
-        else:
-            if sparse_input:
-                qnFitSparse[double, int](
-                    handle_[0],
-                    qnpams,
-                    <double*><uintptr_t> X_m.data.ptr,
-                    <int*><uintptr_t> X_m.indices.ptr,
-                    <int*><uintptr_t> X_m.indptr.ptr,
-                    <int> X_m.nnz,
-                    <double*> y_ptr,
-                    <int> n_rows,
-                    <int> self.n_cols,
-                    <int> self._num_classes,
-                    <double*> coef_ptr,
-                    <double*> &objective64,
-                    <int*> &num_iters,
-                    <double*> sample_weight_ptr)
+                self.objective = objective32
 
             else:
-                qnFit[double, int](
-                    handle_[0],
-                    qnpams,
-                    <double*><uintptr_t> X_m.ptr,
-                    <bool> __is_col_major(X_m),
-                    <double*> y_ptr,
-                    <int> n_rows,
-                    <int> self.n_cols,
-                    <int> self._num_classes,
-                    <double*> coef_ptr,
-                    <double*> &objective64,
-                    <int*> &num_iters,
-                    <double*> sample_weight_ptr)
+                if sparse_input:
+                    qnFitSparse[double, int](
+                        handle_[0],
+                        qnpams,
+                        <double*><uintptr_t> X_m.data.ptr,
+                        <int*><uintptr_t> X_m.indices.ptr,
+                        <int*><uintptr_t> X_m.indptr.ptr,
+                        <int> X_m.nnz,
+                        <double*> y_ptr,
+                        <int> n_rows,
+                        <int> self.n_cols,
+                        <int> self._num_classes,
+                        <double*> coef_ptr,
+                        <double*> &objective64,
+                        <int*> &num_iters,
+                        <double*> sample_weight_ptr)
 
-            self.objective = objective64
+                else:
+                    qnFit[double, int](
+                        handle_[0],
+                        qnpams,
+                        <double*><uintptr_t> X_m.ptr,
+                        <bool> __is_col_major(X_m),
+                        <double*> y_ptr,
+                        <int> n_rows,
+                        <int> self.n_cols,
+                        <int> self._num_classes,
+                        <double*> coef_ptr,
+                        <double*> &objective64,
+                        <int*> &num_iters,
+                        <double*> sample_weight_ptr)
+
+                self.objective = objective64
 
         self.num_iters = num_iters
 
@@ -690,8 +693,6 @@ class QN(Base,
         cdef uintptr_t coef_ptr = self._coef_.ptr
         cdef uintptr_t scores_ptr = scores.ptr
 
-        cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
-
         if not hasattr(self, 'qnparams'):
             self.qnparams = QNParams(
                 loss=self.loss,
@@ -710,57 +711,60 @@ class QN(Base,
 
         _num_classes = self.get_num_classes(_num_classes_dim)
         cdef qn_params qnpams = self.qnparams.params
-        if dtype == np.float32:
-            if sparse_input:
-                qnDecisionFunctionSparse[float, int](
-                    handle_[0],
-                    qnpams,
-                    <float*><uintptr_t> X_m.data.ptr,
-                    <int*><uintptr_t> X_m.indices.ptr,
-                    <int*><uintptr_t> X_m.indptr.ptr,
-                    <int> X_m.nnz,
-                    <int> n_rows,
-                    <int> n_cols,
-                    <int> _num_classes,
-                    <float*> coef_ptr,
-                    <float*> scores_ptr)
-            else:
-                qnDecisionFunction[float, int](
-                    handle_[0],
-                    qnpams,
-                    <float*><uintptr_t> X_m.ptr,
-                    <bool> __is_col_major(X_m),
-                    <int> n_rows,
-                    <int> n_cols,
-                    <int> _num_classes,
-                    <float*> coef_ptr,
-                    <float*> scores_ptr)
 
-        else:
-            if sparse_input:
-                qnDecisionFunctionSparse[double, int](
-                    handle_[0],
-                    qnpams,
-                    <double*><uintptr_t> X_m.data.ptr,
-                    <int*><uintptr_t> X_m.indices.ptr,
-                    <int*><uintptr_t> X_m.indptr.ptr,
-                    <int> X_m.nnz,
-                    <int> n_rows,
-                    <int> n_cols,
-                    <int> _num_classes,
-                    <double*> coef_ptr,
-                    <double*> scores_ptr)
+        IF GPUBUILD == 1:
+            cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
+            if dtype == np.float32:
+                if sparse_input:
+                    qnDecisionFunctionSparse[float, int](
+                        handle_[0],
+                        qnpams,
+                        <float*><uintptr_t> X_m.data.ptr,
+                        <int*><uintptr_t> X_m.indices.ptr,
+                        <int*><uintptr_t> X_m.indptr.ptr,
+                        <int> X_m.nnz,
+                        <int> n_rows,
+                        <int> n_cols,
+                        <int> _num_classes,
+                        <float*> coef_ptr,
+                        <float*> scores_ptr)
+                else:
+                    qnDecisionFunction[float, int](
+                        handle_[0],
+                        qnpams,
+                        <float*><uintptr_t> X_m.ptr,
+                        <bool> __is_col_major(X_m),
+                        <int> n_rows,
+                        <int> n_cols,
+                        <int> _num_classes,
+                        <float*> coef_ptr,
+                        <float*> scores_ptr)
+
             else:
-                qnDecisionFunction[double, int](
-                    handle_[0],
-                    qnpams,
-                    <double*><uintptr_t> X_m.ptr,
-                    <bool> __is_col_major(X_m),
-                    <int> n_rows,
-                    <int> n_cols,
-                    <int> _num_classes,
-                    <double*> coef_ptr,
-                    <double*> scores_ptr)
+                if sparse_input:
+                    qnDecisionFunctionSparse[double, int](
+                        handle_[0],
+                        qnpams,
+                        <double*><uintptr_t> X_m.data.ptr,
+                        <int*><uintptr_t> X_m.indices.ptr,
+                        <int*><uintptr_t> X_m.indptr.ptr,
+                        <int> X_m.nnz,
+                        <int> n_rows,
+                        <int> n_cols,
+                        <int> _num_classes,
+                        <double*> coef_ptr,
+                        <double*> scores_ptr)
+                else:
+                    qnDecisionFunction[double, int](
+                        handle_[0],
+                        qnpams,
+                        <double*><uintptr_t> X_m.ptr,
+                        <bool> __is_col_major(X_m),
+                        <int> n_rows,
+                        <int> n_cols,
+                        <int> _num_classes,
+                        <double*> coef_ptr,
+                        <double*> scores_ptr)
 
         self._calc_intercept()
 
@@ -817,8 +821,6 @@ class QN(Base,
         if(n_rows == 0):
             return preds
 
-        cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
-
         if not hasattr(self, 'qnparams'):
             self.qnparams = QNParams(
                 loss=self.loss,
@@ -836,58 +838,61 @@ class QN(Base,
             )
 
         _num_classes = self.get_num_classes(_num_classes_dim)
-        cdef qn_params qnpams = self.qnparams.params
-        if dtype == np.float32:
-            if sparse_input:
-                qnPredictSparse[float, int](
-                    handle_[0],
-                    qnpams,
-                    <float*><uintptr_t> X_m.data.ptr,
-                    <int*><uintptr_t> X_m.indices.ptr,
-                    <int*><uintptr_t> X_m.indptr.ptr,
-                    <int> X_m.nnz,
-                    <int> n_rows,
-                    <int> n_cols,
-                    <int> _num_classes,
-                    <float*> coef_ptr,
-                    <float*> pred_ptr)
-            else:
-                qnPredict[float, int](
-                    handle_[0],
-                    qnpams,
-                    <float*><uintptr_t> X_m.ptr,
-                    <bool> __is_col_major(X_m),
-                    <int> n_rows,
-                    <int> n_cols,
-                    <int> _num_classes,
-                    <float*> coef_ptr,
-                    <float*> pred_ptr)
 
-        else:
-            if sparse_input:
-                qnPredictSparse[double, int](
-                    handle_[0],
-                    qnpams,
-                    <double*><uintptr_t> X_m.data.ptr,
-                    <int*><uintptr_t> X_m.indices.ptr,
-                    <int*><uintptr_t> X_m.indptr.ptr,
-                    <int> X_m.nnz,
-                    <int> n_rows,
-                    <int> n_cols,
-                    <int> _num_classes,
-                    <double*> coef_ptr,
-                    <double*> pred_ptr)
+        IF GPUBUILD == 1:
+            cdef qn_params qnpams = self.qnparams.params
+            cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
+            if dtype == np.float32:
+                if sparse_input:
+                    qnPredictSparse[float, int](
+                        handle_[0],
+                        qnpams,
+                        <float*><uintptr_t> X_m.data.ptr,
+                        <int*><uintptr_t> X_m.indices.ptr,
+                        <int*><uintptr_t> X_m.indptr.ptr,
+                        <int> X_m.nnz,
+                        <int> n_rows,
+                        <int> n_cols,
+                        <int> _num_classes,
+                        <float*> coef_ptr,
+                        <float*> pred_ptr)
+                else:
+                    qnPredict[float, int](
+                        handle_[0],
+                        qnpams,
+                        <float*><uintptr_t> X_m.ptr,
+                        <bool> __is_col_major(X_m),
+                        <int> n_rows,
+                        <int> n_cols,
+                        <int> _num_classes,
+                        <float*> coef_ptr,
+                        <float*> pred_ptr)
+
             else:
-                qnPredict[double, int](
-                    handle_[0],
-                    qnpams,
-                    <double*><uintptr_t> X_m.ptr,
-                    <bool> __is_col_major(X_m),
-                    <int> n_rows,
-                    <int> n_cols,
-                    <int> _num_classes,
-                    <double*> coef_ptr,
-                    <double*> pred_ptr)
+                if sparse_input:
+                    qnPredictSparse[double, int](
+                        handle_[0],
+                        qnpams,
+                        <double*><uintptr_t> X_m.data.ptr,
+                        <int*><uintptr_t> X_m.indices.ptr,
+                        <int*><uintptr_t> X_m.indptr.ptr,
+                        <int> X_m.nnz,
+                        <int> n_rows,
+                        <int> n_cols,
+                        <int> _num_classes,
+                        <double*> coef_ptr,
+                        <double*> pred_ptr)
+                else:
+                    qnPredict[double, int](
+                        handle_[0],
+                        qnpams,
+                        <double*><uintptr_t> X_m.ptr,
+                        <bool> __is_col_major(X_m),
+                        <int> n_rows,
+                        <int> n_cols,
+                        <int> _num_classes,
+                        <double*> coef_ptr,
+                        <double*> pred_ptr)
 
         self._calc_intercept()
 
