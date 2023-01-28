@@ -711,7 +711,7 @@ class QN(Base,
                 penalty_normalized=self.penalty_normalized
             )
 
-        _num_classes = self.get_num_classes(_num_classes_dim)
+        _num_classcles = self.get_num_classes(_num_classes_dim)
 
         IF GPUBUILD == 1:
             cdef qn_params qnpams = self.qnparams.params
