@@ -49,9 +49,6 @@ if (is_cuda_available()):
     import cuml.feature_extraction
     from cuml.fil import fil
 
-    from cuml.internals.global_settings import (
-        GlobalSettings, _global_settings_data)
-
     from cuml.kernel_ridge.kernel_ridge import KernelRidge
 
     from cuml.linear_model.elastic_net import ElasticNet
@@ -97,13 +94,17 @@ if (is_cuda_available()):
     from cuml.tsa.holtwinters import ExponentialSmoothing
 
     from cuml.common.pointer_utils import device_of_gpu_matrix
-    from cuml.internals.memory_utils import (
-        set_global_output_type, using_output_type
-    )
 
 # Universal packages
 
 from cuml.linear_model.linear_regression import LinearRegression
+
+from cuml.internals.global_settings import (
+        GlobalSettings, _global_settings_data)
+
+from cuml.internals.memory_utils import (
+    set_global_output_type, using_output_type
+)
 
 # Import verion. Remove at end of file
 from ._version import get_versions

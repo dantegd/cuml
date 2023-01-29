@@ -33,10 +33,10 @@ from cuml.common.doc_utils import generate_docstring
 from cuml.common import input_to_cuml_array
 from cuml.internals.mixins import FMajorInputTagMixin
 from cuml.common.sparse_utils import is_sparse
-from cuml.metrics import accuracy_score
 
 
 IF GPUBUILD == 1:
+    from cuml.metrics import accuracy_score
     from pylibraft.common.handle cimport handle_t
     cdef extern from "cuml/linear_model/glm.hpp" namespace "ML::GLM" nogil:
 
@@ -143,105 +143,105 @@ IF GPUBUILD == 1:
             T *preds) except +
 
 
-class StructWrapper(type):
-    '''Define a property for each key in `get_param_defaults`,
-       for which there is no explicit property defined in the class.
-    '''
-    def __new__(cls, name, bases, attrs):
-        def add_prop(prop_name):
-            setattr(x, prop_name, property(
-                lambda self: self._getparam(prop_name),
-                lambda self, value: self._setparam(prop_name, value)
-            ))
+    class StructWrapper(type):
+        '''Define a property for each key in `get_param_defaults`,
+           for which there is no explicit property defined in the class.
+        '''
+        def __new__(cls, name, bases, attrs):
+            def add_prop(prop_name):
+                setattr(x, prop_name, property(
+                    lambda self: self._getparam(prop_name),
+                    lambda self, value: self._setparam(prop_name, value)
+                ))
 
-        x = super().__new__(cls, name, bases, attrs)
+            x = super().__new__(cls, name, bases, attrs)
 
-        for prop_name in getattr(x, 'get_param_defaults', lambda: {})():
-            if not hasattr(x, prop_name):
-                add_prop(prop_name)
-        del add_prop
+            for prop_name in getattr(x, 'get_param_defaults', lambda: {})():
+                if not hasattr(x, prop_name):
+                    add_prop(prop_name)
+            del add_prop
 
-        return x
-
-
-class StructParams(metaclass=StructWrapper):
-    params: dict
-
-    def __new__(cls, *args, **kwargs):
-        x = object.__new__(cls)
-        x.params = cls.get_param_defaults().copy()
-        return x
-
-    def __init__(self, **kwargs):
-        allowed_keys = set(self.get_param_names())
-        for key, val in kwargs.items():
-            if key in allowed_keys:
-                setattr(self, key, val)
-
-    def _getparam(self, key):
-        return self.params[key]
-
-    def _setparam(self, key, val):
-        self.params[key] = val
-
-    def get_param_names(self):
-        return self.get_param_defaults().keys()
-
-    def __str__(self):
-        return type(self).__name__ + str(self.params)
+            return x
 
 
-class QNParams(StructParams):
+    class StructParams(metaclass=StructWrapper):
+        params: dict
 
-    @staticmethod
-    def get_param_defaults():
-        IF GPUBUILD == 1:
-            cdef qn_params ps
-            return ps
+        def __new__(cls, *args, **kwargs):
+            x = object.__new__(cls)
+            x.params = cls.get_param_defaults().copy()
+            return x
 
-    @property
-    def loss(self) -> str:
-        loss = self._getparam('loss')
-        IF GPUBUILD == 1:
-            if loss == qn_loss_type.QN_LOSS_LOGISTIC:
-                return "sigmoid"
-            if loss == qn_loss_type.QN_LOSS_SQUARED:
-                return "l2"
-            if loss == qn_loss_type.QN_LOSS_SOFTMAX:
-                return "softmax"
-            if loss == qn_loss_type.QN_LOSS_SVC_L1:
-                return "svc_l1"
-            if loss == qn_loss_type.QN_LOSS_SVC_L2:
-                return "svc_l2"
-            if loss == qn_loss_type.QN_LOSS_SVR_L1:
-                return "svr_l1"
-            if loss == qn_loss_type.QN_LOSS_SVR_L2:
-                return "svr_l2"
-            if loss == qn_loss_type.QN_LOSS_ABS:
-                return "l1"
-        raise ValueError(f"Unknown loss enum value: {loss}")
+        def __init__(self, **kwargs):
+            allowed_keys = set(self.get_param_names())
+            for key, val in kwargs.items():
+                if key in allowed_keys:
+                    setattr(self, key, val)
 
-    @loss.setter
-    def loss(self, loss: str):
-        IF GPUBUILD == 1:
-            if loss in {"sigmoid", "logistic"}:
-                self._setparam('loss', qn_loss_type.QN_LOSS_LOGISTIC)
-            elif loss == "softmax":
-                self._setparam('loss', qn_loss_type.QN_LOSS_SOFTMAX)
-            elif loss in {"normal", "l2"}:
-                self._setparam('loss', qn_loss_type.QN_LOSS_SQUARED)
-            elif loss == "l1":
-                self._setparam('loss', qn_loss_type.QN_LOSS_ABS)
-            elif loss == "svc_l1":
-                self._setparam('loss', qn_loss_type.QN_LOSS_SVC_L1)
-            elif loss == "svc_l2":
-                self._setparam('loss', qn_loss_type.QN_LOSS_SVC_L2)
-            elif loss == "svr_l1":
-                self._setparam('loss', qn_loss_type.QN_LOSS_SVR_L1)
-            elif loss == "svr_l2":
-                self._setparam('loss', qn_loss_type.QN_LOSS_SVR_L2)
-            else:
-                raise ValueError(f"Unknown loss string value: {loss}")
+        def _getparam(self, key):
+            return self.params[key]
+
+        def _setparam(self, key, val):
+            self.params[key] = val
+
+        def get_param_names(self):
+            return self.get_param_defaults().keys()
+
+        def __str__(self):
+            return type(self).__name__ + str(self.params)
+
+
+    class QNParams(StructParams):
+
+        @staticmethod
+        def get_param_defaults():
+            IF GPUBUILD == 1:
+                cdef qn_params ps
+                return ps
+
+        @property
+        def loss(self) -> str:
+            loss = self._getparam('loss')
+            IF GPUBUILD == 1:
+                if loss == qn_loss_type.QN_LOSS_LOGISTIC:
+                    return "sigmoid"
+                if loss == qn_loss_type.QN_LOSS_SQUARED:
+                    return "l2"
+                if loss == qn_loss_type.QN_LOSS_SOFTMAX:
+                    return "softmax"
+                if loss == qn_loss_type.QN_LOSS_SVC_L1:
+                    return "svc_l1"
+                if loss == qn_loss_type.QN_LOSS_SVC_L2:
+                    return "svc_l2"
+                if loss == qn_loss_type.QN_LOSS_SVR_L1:
+                    return "svr_l1"
+                if loss == qn_loss_type.QN_LOSS_SVR_L2:
+                    return "svr_l2"
+                if loss == qn_loss_type.QN_LOSS_ABS:
+                    return "l1"
+            raise ValueError(f"Unknown loss enum value: {loss}")
+
+        @loss.setter
+        def loss(self, loss: str):
+            IF GPUBUILD == 1:
+                if loss in {"sigmoid", "logistic"}:
+                    self._setparam('loss', qn_loss_type.QN_LOSS_LOGISTIC)
+                elif loss == "softmax":
+                    self._setparam('loss', qn_loss_type.QN_LOSS_SOFTMAX)
+                elif loss in {"normal", "l2"}:
+                    self._setparam('loss', qn_loss_type.QN_LOSS_SQUARED)
+                elif loss == "l1":
+                    self._setparam('loss', qn_loss_type.QN_LOSS_ABS)
+                elif loss == "svc_l1":
+                    self._setparam('loss', qn_loss_type.QN_LOSS_SVC_L1)
+                elif loss == "svc_l2":
+                    self._setparam('loss', qn_loss_type.QN_LOSS_SVC_L2)
+                elif loss == "svr_l1":
+                    self._setparam('loss', qn_loss_type.QN_LOSS_SVR_L1)
+                elif loss == "svr_l2":
+                    self._setparam('loss', qn_loss_type.QN_LOSS_SVR_L2)
+                else:
+                    raise ValueError(f"Unknown loss string value: {loss}")
 
 
 class QN(Base,
@@ -695,25 +695,25 @@ class QN(Base,
         cdef uintptr_t coef_ptr = self._coef_.ptr
         cdef uintptr_t scores_ptr = scores.ptr
 
-        if not hasattr(self, 'qnparams'):
-            self.qnparams = QNParams(
-                loss=self.loss,
-                penalty_l1=self.l1_strength,
-                penalty_l2=self.l2_strength,
-                grad_tol=self.tol,
-                change_tol=self.delta
-                if self.delta is not None else (self.tol * 0.01),
-                max_iter=self.max_iter,
-                linesearch_max_iter=self.linesearch_max_iter,
-                lbfgs_memory=self.lbfgs_memory,
-                verbose=self.verbose,
-                fit_intercept=self.fit_intercept,
-                penalty_normalized=self.penalty_normalized
-            )
-
-        _num_classcles = self.get_num_classes(_num_classes_dim)
-
         IF GPUBUILD == 1:
+            if not hasattr(self, 'qnparams'):
+                self.qnparams = QNParams(
+                    loss=self.loss,
+                    penalty_l1=self.l1_strength,
+                    penalty_l2=self.l2_strength,
+                    grad_tol=self.tol,
+                    change_tol=self.delta
+                    if self.delta is not None else (self.tol * 0.01),
+                    max_iter=self.max_iter,
+                    linesearch_max_iter=self.linesearch_max_iter,
+                    lbfgs_memory=self.lbfgs_memory,
+                    verbose=self.verbose,
+                    fit_intercept=self.fit_intercept,
+                    penalty_normalized=self.penalty_normalized
+                )
+
+            _num_classcles = self.get_num_classes(_num_classes_dim)
+
             cdef qn_params qnpams = self.qnparams.params
             cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
             if dtype == np.float32:
@@ -823,25 +823,24 @@ class QN(Base,
         if(n_rows == 0):
             return preds
 
-        if not hasattr(self, 'qnparams'):
-            self.qnparams = QNParams(
-                loss=self.loss,
-                penalty_l1=self.l1_strength,
-                penalty_l2=self.l2_strength,
-                grad_tol=self.tol,
-                change_tol=self.delta
-                if self.delta is not None else (self.tol * 0.01),
-                max_iter=self.max_iter,
-                linesearch_max_iter=self.linesearch_max_iter,
-                lbfgs_memory=self.lbfgs_memory,
-                verbose=self.verbose,
-                fit_intercept=self.fit_intercept,
-                penalty_normalized=self.penalty_normalized
-            )
-
-        _num_classes = self.get_num_classes(_num_classes_dim)
-
         IF GPUBUILD == 1:
+            if not hasattr(self, 'qnparams'):
+                self.qnparams = QNParams(
+                    loss=self.loss,
+                    penalty_l1=self.l1_strength,
+                    penalty_l2=self.l2_strength,
+                    grad_tol=self.tol,
+                    change_tol=self.delta
+                    if self.delta is not None else (self.tol * 0.01),
+                    max_iter=self.max_iter,
+                    linesearch_max_iter=self.linesearch_max_iter,
+                    lbfgs_memory=self.lbfgs_memory,
+                    verbose=self.verbose,
+                    fit_intercept=self.fit_intercept,
+                    penalty_normalized=self.penalty_normalized
+                )
+
+            _num_classes = self.get_num_classes(_num_classes_dim)
             cdef qn_params qnpams = self.qnparams.params
             cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
             if dtype == np.float32:
@@ -905,7 +904,8 @@ class QN(Base,
         return preds
 
     def score(self, X, y):
-        return accuracy_score(y, self.predict(X))
+        if GPUBUILD == 1:
+            return accuracy_score(y, self.predict(X))
 
     def get_num_classes(self, _num_classes_dim):
         """

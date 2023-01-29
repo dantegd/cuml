@@ -163,8 +163,8 @@ class PatternSetter:
         pass
 
     def __exit__(self, a, b, c):
-        cdef string s = self.prev_pattern.encode("utf-8")
         IF GPUBUILD == 1:
+            cdef string s = self.prev_pattern.encode("utf-8")
             Logger.get().setPattern(s)
 
 
@@ -338,8 +338,11 @@ def error(msg):
     msg : str
         Message to be logged.
     """
-    cdef string s = msg.encode("UTF-8")
-    CUML_LOG_ERROR(s.c_str())
+    IF GPUBUILD == 1:
+        cdef string s = msg.encode("UTF-8")
+        CUML_LOG_ERROR(s.c_str())
+    ELSE:
+        logging.error(msg)
 
 
 def critical(msg):
@@ -369,7 +372,8 @@ def flush():
     """
     Flush the logs.
     """
-    Logger.get().flush()
+    IF GPUBUILD == 1:
+        Logger.get().flush()
 
 
 IF GPUBUILD == 1:
