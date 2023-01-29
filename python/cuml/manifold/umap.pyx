@@ -29,8 +29,6 @@ from cuml.internals.safe_imports import gpu_only_import
 cupy = gpu_only_import('cupy')
 cupyx = gpu_only_import('cupyx')
 
-from cuml.manifold.umap_utils import GraphHolder, find_ab_params
-
 from cuml.common.sparsefuncs import extract_knn_graph
 from cuml.internals.safe_imports import gpu_only_import_from
 cp_csr_matrix = gpu_only_import_from('cupyx.scipy.sparse', 'csr_matrix')
@@ -50,8 +48,6 @@ from cuml.internals.array_sparse import SparseCumlArray
 from cuml.internals.mixins import CMajorInputTagMixin
 from cuml.common.sparse_utils import is_sparse
 
-from cuml.manifold.simpl_set import fuzzy_simplicial_set, \
-    simplicial_set_embedding
 
 if has_scipy(True):
     import scipy.sparse
@@ -72,6 +68,11 @@ IF GPUBUILD == 1:
     from cuml.metrics.distance_type cimport DistanceType
     from cuml.manifold.umap_utils cimport *
     from pylibraft.common.handle cimport handle_t
+    from cuml.manifold.umap_utils import GraphHolder, find_ab_params
+
+    from cuml.manifold.simpl_set import fuzzy_simplicial_set, \
+    simplicial_set_embedding
+
     cdef extern from "cuml/manifold/umap.hpp" namespace "ML::UMAP":
 
         void fit(handle_t & handle,
@@ -483,7 +484,8 @@ class UMAP(UniversalBase,
 
     @staticmethod
     def find_ab_params(spread, min_dist):
-        return find_ab_params(spread, min_dist)
+        IF GPUBUILD == 1:
+            return find_ab_params(spread, min_dist)
 
     @generate_docstring(convert_dtype_cast='np.float32',
                         X='dense_sparse',

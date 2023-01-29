@@ -28,7 +28,6 @@ from cuml.internals.array import CumlArray
 from cuml.internals.base import Base
 from cuml.common.doc_utils import generate_docstring
 
-from pylibraft.common.handle import Handle
 from cuml.common import (
     input_to_cuml_array,
     input_to_host_array
@@ -47,6 +46,7 @@ import cuml
 IF GPUBUILD == 1:
     from cuml.metrics.distance_type cimport DistanceType
     from pylibraft.common.handle cimport handle_t
+    from pylibraft.common.handle import Handle
     cdef extern from "cuml/cluster/hdbscan.hpp" namespace "ML::HDBSCAN::Common":
 
         cdef cppclass CondensedHierarchy[value_idx, value_t]:
