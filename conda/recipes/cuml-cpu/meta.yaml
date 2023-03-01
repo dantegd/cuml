@@ -2,20 +2,18 @@
 
 # Usage:
 #   conda build . -c conda-forge -c numba -c rapidsai -c pytorch
-{% set version = environ.get('GIT_DESCRIBE_TAG', '0.0.0.dev').lstrip('v') + environ.get('VERSION_SUFFIX', '') %}
-{% set minor_version =  version.split('.')[0] + '.' + version.split('.')[1] %}
 {% set py_version=environ.get('CONDA_PY', 36) %}
 
 package:
   name: cuml-cpu
-  version: {{ version }}
+  version: 23.02.00
 
 source:
   git_url: ../../..
 
 build:
-  number: {{ GIT_DESCRIBE_NUMBER }}
-  string: _py{{ py_version }}_{{ GIT_DESCRIBE_HASH }}_{{ GIT_DESCRIBE_NUMBER }}
+  number: 150
+  string: py{{ py_version }}_{{ GIT_DESCRIBE_HASH }}_{{ GIT_DESCRIBE_NUMBER }}
   script_env:
     - VERSION_SUFFIX
 
