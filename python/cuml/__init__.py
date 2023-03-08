@@ -97,6 +97,9 @@ from cuml.internals.memory_utils import (
 
 from cuml.cluster.hdbscan import HDBSCAN
 
+from cuml.decomposition.pca import PCA
+from cuml.decomposition.tsvd import TruncatedSVD
+
 from cuml.linear_model.elastic_net import ElasticNet
 from cuml.linear_model.lasso import Lasso
 from cuml.linear_model.linear_regression import LinearRegression
@@ -190,3 +193,4 @@ __all__ = [
     "make_regression",
     "stationarity",
 ]
+

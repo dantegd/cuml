@@ -255,12 +255,7 @@ class LogisticRegression(UniversalBase,
             handle=self.handle,
         )
 
-        if logger.should_log_for(logger.level_debug):
-            self.verb_prefix = "CY::"
-            logger.debug(self.verb_prefix + "Estimator parameters:")
-            logger.debug(pprint.pformat(self.__dict__))
-        else:
-            self.verb_prefix = ""
+        self.verb_prefix = ""
 
     @generate_docstring(X='dense_sparse')
     @cuml.internals.api_base_return_any(set_output_dtype=True)
@@ -331,33 +326,11 @@ class LogisticRegression(UniversalBase,
         else:
             loss = "sigmoid"
 
-        if logger.should_log_for(logger.level_debug):
-            logger.debug(self.verb_prefix + "Setting loss to " + str(loss))
 
         self.solver_model.loss = loss
 
-        if logger.should_log_for(logger.level_debug):
-            logger.debug(self.verb_prefix + "Calling QN fit " + str(loss))
-
         self.solver_model.fit(X, y_m, sample_weight=sample_weight,
                               convert_dtype=convert_dtype)
-
-        # coefficients and intercept are contained in the same array
-        if logger.should_log_for(logger.level_debug):
-            logger.debug(
-                self.verb_prefix + "Setting coefficients " + str(loss)
-            )
-
-        if logger.should_log_for(logger.level_trace):
-            with using_output_type("cupy"):
-                logger.trace(self.verb_prefix + "Coefficients: " +
-                             str(self.solver_model.coef_))
-                if self.fit_intercept:
-                    logger.trace(
-                        self.verb_prefix
-                        + "Intercept: "
-                        + str(self.solver_model.intercept_)
-                    )
 
         return self
 
@@ -548,3 +521,4 @@ class LogisticRegression(UniversalBase,
     def get_attr_names(self):
         return ['classes_', 'intercept_', 'coef_', 'n_features_in_',
                 'feature_names_in_']
+

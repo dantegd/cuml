@@ -352,8 +352,9 @@ class UMAP(UniversalBase,
         else:
             raise Exception("Initialization strategy not supported: %d" % init)
 
-        if a is None or b is None:
-            a, b = type(self).find_ab_params(spread, min_dist)
+        IF GPUBUILD == 1:
+            if a is None or b is None:
+                a, b = type(self).find_ab_params(spread, min_dist)
 
         self.a = a
         self.b = b
@@ -825,3 +826,4 @@ class UMAP(UniversalBase,
 
     def get_attr_names(self):
         return ['_raw_data', 'embedding_', '_input_hash', '_small_data']
+

@@ -36,6 +36,7 @@ requirements:
     - hdbscan=0.8.29
     - umap-learn=0.5.3
     - nvtx
+    - pandas
 
 tests:                                 # [linux64]
   imports:                             # [linux64]
