@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2022, NVIDIA CORPORATION.
+# Copyright (c) 2019-2023, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,6 +52,7 @@ if has_sklearn():
     from cuml.multiclass import MulticlassClassifier
     from sklearn.calibration import CalibratedClassifierCV
 
+
 cdef extern from "raft/distance/distance_types.hpp" \
         namespace "raft::distance::kernels":
     enum KernelType:
@@ -74,7 +75,7 @@ cdef extern from "cuml/svm/svm_parameter.h" namespace "ML::SVM":
         NU_SVR
 
     cdef struct SvmParameter:
-        # parameters for trainig
+        # parameters for training
         double C
         double cache_size
         int max_iter
@@ -109,6 +110,83 @@ cdef extern from "cuml/svm/svc.hpp" namespace "ML::SVM" nogil:
         const handle_t &handle, math_t *input, int n_rows, int n_cols,
         KernelParams &kernel_params, const SvmModel[math_t] &model,
         math_t *preds, math_t buffer_size, bool predict_class) except +
+
+
+def apply_class_weight(handle, sample_weight, class_weight, y, verbose, output_type, dtype) -> CumlArray:
+    """
+    Scale the sample weights with the class weights.
+
+    Returns the modified sample weights, or None if neither class weights
+    nor sample weights are defined. The returned weights are defined as
+
+    sample_weight[i] = class_weight[y[i]] * sample_weight[i].
+
+    Parameters:
+    -----------
+    handle : cuml.Handle
+        Specifies the cuml.handle that holds internal CUDA state for
+        computations in this model. 
+    sample_weight: array-like (device or host), shape = (n_samples, 1)
+        sample weights or None if not given
+    class_weight : dict or string (default=None)
+        Weights to modify the parameter C for class i to class_weight[i]*C. The
+        string 'balanced' is also accepted, in which case ``class_weight[i] =
+        n_samples / (n_classes * n_samples_of_class[i])``
+    y: array of floats or doubles, shape = (n_samples, 1)
+    verbose : int or boolean, default=False
+        Sets logging level. It must be one of `cuml.common.logger.level_*`.
+        See :ref:`verbosity-levels` for more info.
+    output_type : {{'input', 'array', 'dataframe', 'series', 'df_obj', \
+        'numba', 'cupy', 'numpy', 'cudf', 'pandas'}}, default=None
+        Return results and set estimator attributes to the indicated output
+        type. If None, the output type set at the module level
+        (`cuml.global_settings.output_type`) will be used. See
+        :ref:`output-data-type-configuration` for more info.
+    dtype : dtype for sample_weights
+
+    Returns
+    --------
+    sample_weight: device array shape = (n_samples, 1) or None
+    """
+    if class_weight is None:
+        return sample_weight
+
+    if type(y) is CumlArray:
+        y_m = y
+    else:
+        y_m, _, _, _ = input_to_cuml_array(y, check_cols=1)
+
+    le = LabelEncoder(handle=handle,
+                      verbose=verbose,
+                      output_type=output_type)
+    labels = y_m.to_output(output_type='series')
+    encoded_labels = cp.asarray(le.fit_transform(labels))
+    n_samples = y_m.shape[0]
+
+    # Define class weights for the encoded labels
+    if class_weight == 'balanced':
+        counts = cp.asnumpy(cp.bincount(encoded_labels))
+        n_classes = len(counts)
+        weights = n_samples / (n_classes * counts)
+        class_weight = {i: weights[i] for i in range(n_classes)}
+    else:
+        keys = class_weight.keys()
+        keys_series = cudf.Series(keys)
+        encoded_keys = le.transform(cudf.Series(keys)).values_host
+        class_weight = {enc_key: class_weight[key]
+                        for enc_key, key in zip(encoded_keys, keys)}
+
+    if sample_weight is None:
+        sample_weight = cp.ones(y_m.shape, dtype=dtype)
+    else:
+        sample_weight, _, _, _ = \
+            input_to_cupy_array(sample_weight, convert_to_dtype=dtype,
+                                check_rows=n_samples, check_cols=1)
+
+    for label, weight in class_weight.items():
+        sample_weight[encoded_labels==label] *= weight
+
+    return sample_weight
 
 
 class SVC(SVMBase,
@@ -157,7 +235,7 @@ class SVC(SVMBase,
         - 'scale': gamma will be se to ``1 / (n_features * X.var())``
 
     coef0 : float (default = 0.0)
-        Independent term in kernel function, only signifficant for poly and
+        Independent term in kernel function, only significant for poly and
         sigmoid
     tol : float (default = 1e-3)
         Tolerance for stopping criterion.
@@ -166,7 +244,7 @@ class SVC(SVMBase,
         the training time, at the cost of higher memory footprint. After
         training the kernel cache is deallocated.
         During prediction, we also need a temporary space to store kernel
-        matrix elements (this can be signifficant if n_support is large).
+        matrix elements (this can be significant if n_support is large).
         The cache_size variable sets an upper limit to the prediction
         buffer as well.
     class_weight : dict or string (default=None)
@@ -195,7 +273,7 @@ class SVC(SVMBase,
         Enable or disable probability estimates.
     random_state: int (default = None)
         Seed for random number generator (used only when probability = True).
-        Currently this argument is not used and a waring will be printed if the
+        Currently this argument is not used and a warning will be printed if the
         user provides it.
     verbose : int or boolean, default=False
         Sets logging level. It must be one of `cuml.common.logger.level_*`.
@@ -313,62 +391,6 @@ class SVC(SVMBase,
     def intercept_(self, value):
         self._intercept_ = value
 
-    @cuml.internals.api_base_return_array_skipall
-    def _apply_class_weight(self, sample_weight, y_m) -> CumlArray:
-        """
-        Scale the sample weights with the class weights.
-
-        Returns the modified sample weights, or None if neither class weights
-        nor sample weights are defined. The returned weights are defined as
-
-        sample_weight[i] = class_weight[y[i]] * sample_weight[i].
-
-        Parameters:
-        -----------
-        sample_weight: array-like (device or host), shape = (n_samples, 1)
-            sample weights or None if not given
-        y_m: device array of floats or doubles, shape = (n_samples, 1)
-            Array of target labels already copied to the device.
-
-        Returns
-        --------
-        sample_weight: device array shape = (n_samples, 1) or None
-        """
-        if self.class_weight is None:
-            return sample_weight
-
-        le = LabelEncoder(handle=self.handle,
-                          verbose=self.verbose,
-                          output_type=self.output_type)
-        labels = y_m.to_output(output_type='series')
-        encoded_labels = cp.asarray(le.fit_transform(labels))
-
-        # Define class weights for the encoded labels
-        if self.class_weight == 'balanced':
-            counts = cp.asnumpy(cp.bincount(encoded_labels))
-            n_classes = len(counts)
-            n_samples = y_m.shape[0]
-            weights = n_samples / (n_classes * counts)
-            class_weight = {i: weights[i] for i in range(n_classes)}
-        else:
-            keys = self.class_weight.keys()
-            keys_series = cudf.Series(keys)
-            encoded_keys = le.transform(cudf.Series(keys)).values_host
-            class_weight = {enc_key: self.class_weight[key]
-                            for enc_key, key in zip(encoded_keys, keys)}
-
-        if sample_weight is None:
-            sample_weight = cp.ones(y_m.shape, dtype=self.dtype)
-        else:
-            sample_weight, _, _, _ = \
-                input_to_cupy_array(sample_weight, convert_to_dtype=self.dtype,
-                                    check_rows=self.n_rows, check_cols=1)
-
-        for label, weight in class_weight.items():
-            sample_weight[encoded_labels==label] *= weight
-
-        return sample_weight
-
     def _get_num_classes(self, y):
         """
         Determine the number of unique classes in y.
@@ -468,7 +490,7 @@ class SVC(SVMBase,
 
         cdef uintptr_t y_ptr = y_m.ptr
 
-        sample_weight = self._apply_class_weight(sample_weight, y_m)
+        sample_weight = apply_class_weight(self.handle, sample_weight, self.class_weight, y_m, self.verbose, self.output_type, self.dtype)
         cdef uintptr_t sample_weight_ptr = <uintptr_t> nullptr
         if sample_weight is not None:
             sample_weight_m, _, _, _ = \

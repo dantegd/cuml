@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2022, NVIDIA CORPORATION.
+ * Copyright (c) 2019-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -179,7 +179,7 @@ class Results {
   /** Return non zero dual coefficients.
    *
    * @param [in] val_tmp device pointer with dual coefficients
-   * @param [out] dual_coefs device pointer of non-zero dual coefficiens,
+   * @param [out] dual_coefs device pointer of non-zero dual coefficients,
    *   unallocated on entry, on exit size [n_support]
    * @param [out] n_support number of support vectors
    */
@@ -283,13 +283,13 @@ class Results {
   const raft::handle_t& handle;
   cudaStream_t stream;
 
-  int n_rows;       //!< number of rows in the training vector matrix
-  int n_cols;       //!< number of features
-  const math_t* x;  //!< training vectors
-  const math_t* y;  //!< labels
-  const math_t* C;  //!< penalty parameter
-  SvmType svmType;  //!< SVM problem type: SVC or SVR
-  int n_train;      //!< number of training vectors (including duplicates for SVR)
+  int n_rows;           //!< number of rows in the training vector matrix
+  int n_cols;           //!< number of features
+  const math_t* x;      //!< training vectors
+  const math_t* y;      //!< labels
+  const math_t* C;      //!< penalty parameter
+  SvmType svmType;      //!< SVM problem type: SVC or SVR
+  int n_train;          //!< number of training vectors (including duplicates for SVR)
 
   const int TPB = 256;  // threads per block
   // Temporary variables used by cub in GetResults

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2022, NVIDIA CORPORATION.
+ * Copyright (c) 2019-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -231,7 +231,7 @@ class SmoSolver {
                                                      1,
                                                      stream));
     if (svmType == EPSILON_SVR) {
-      // SVR has doubled the number of trainig vectors and we need to update
+      // SVR has doubled the number of training vectors and we need to update
       // alpha for both batches individually
       // #TODO: Call from public API when ready
       RAFT_CUBLAS_TRY(raft::linalg::detail::cublasgemv(handle.get_cublas_handle(),
@@ -397,7 +397,7 @@ class SmoSolver {
   rmm::device_uvector<math_t> f;        //!< optimality indicator vector
   rmm::device_uvector<math_t> y_label;  //!< extra label for regression
 
-  rmm::device_uvector<math_t> C_vec;  //!< penalty parameter vector
+  rmm::device_uvector<math_t> C_vec;    //!< penalty parameter vector
 
   // Buffers for the working set [n_ws]
   //! change in alpha parameter during a blocksolve step
@@ -415,7 +415,7 @@ class SmoSolver {
   raft::distance::kernels::GramMatrixBase<math_t>* kernel;
   float cache_size;  //!< size of kernel cache in MiB
 
-  SvmType svmType;  ///!< Type of the SVM problem to solve
+  SvmType svmType;   ///!< Type of the SVM problem to solve
 
   // Variables to track convergence of training
   math_t diff_prev;

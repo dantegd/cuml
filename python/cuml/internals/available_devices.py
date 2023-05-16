@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022, NVIDIA CORPORATION.
+# Copyright (c) 2022-2023, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,17 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from cuml.internals.safe_imports import (
-    gpu_only_import_from, UnavailableError
-)
-try:
-    from functools import cache  # requires Python >= 3.9
+
+from cuml.internals.safe_imports import gpu_only_import_from, UnavailableError
+
+from functools import cache  # requires Python >= 3.9
 except ImportError:
     from functools import lru_cache
+
     cache = lru_cache(maxsize=None)
 
 
-get_cuda_count = gpu_only_import_from('rmm._cuda.gpu', 'getDeviceCount')
+get_cuda_count = gpu_only_import_from("rmm._cuda.gpu", "getDeviceCount")
 
 
 @cache

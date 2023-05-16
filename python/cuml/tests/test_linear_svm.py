@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2022, NVIDIA CORPORATION.
+# Copyright (c) 2021-2023, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,8 +28,10 @@ import multiprocessing as mp
 import time
 import math
 from cuml.internals.safe_imports import gpu_only_import
-cp = gpu_only_import('cupy')
-np = cpu_only_import('numpy')
+from cuml.common import input_to_cuml_array
+
+cp = gpu_only_import("cupy")
+np = cpu_only_import("numpy")
 
 
 SEED = 42
@@ -51,21 +53,23 @@ def good_enough(myscore: float, refscore: float, training_size: int):
     thresh_abs = referr + ERROR_TOLERANCE_ABS * c
     good_rel = myerr <= thresh_rel
     good_abs = myerr <= thresh_abs
-    assert good_rel or good_abs, \
-        f"The model is surely not good enough " \
-        f"(cuml error = {myerr} > " \
+    assert good_rel or good_abs, (
+        f"The model is surely not good enough "
+        f"(cuml error = {myerr} > "
         f"min(abs threshold = {thresh_abs}; rel threshold = {thresh_rel}))"
+    )
 
 
 def with_timeout(timeout, target, args=(), kwargs={}):
-    '''Don't wait if the sklearn function takes really too long.'''
+    """Don't wait if the sklearn function takes really too long."""
     try:
-        ctx = mp.get_context('fork')
+        ctx = mp.get_context("fork")
     except ValueError:
         logger.warn(
             '"fork" multiprocessing start method is not available. '
-            'The sklearn model will run in the same process and '
-            'cannot be killed if it runs too long.')
+            "The sklearn model will run in the same process and "
+            "cannot be killed if it runs too long."
+        )
         return target(*args, **kwargs)
     q = ctx.Queue()
 
@@ -75,6 +79,7 @@ def with_timeout(timeout, target, args=(), kwargs={}):
         except BaseException as e:  # noqa E722
             print("Test subprocess failed with an exception: ", e)
             q.put((False, None))
+
     p = ctx.Process(target=target_res)
     p.start()
     try:
@@ -95,20 +100,15 @@ def make_regression_dataset(datatype, nrows, ncols):
         n_samples=nrows + 1000,
         n_features=ncols,
         random_state=SEED,
-        n_informative=ninformative
+        n_informative=ninformative,
     )
     return dsel.train_test_split(X, y, random_state=SEED, train_size=nrows)
 
 
 def make_classification_dataset(datatype, nrows, ncols, nclasses):
-    n_real_features = min(ncols, int(
-        max(nclasses * 2, math.ceil(ncols / 10))))
-    n_clusters_per_class = min(
-        2, max(1, int(2**n_real_features / nclasses))
-    )
-    n_redundant = min(
-        ncols - n_real_features,
-        max(2, math.ceil(ncols / 20)))
+    n_real_features = min(ncols, int(max(nclasses * 2, math.ceil(ncols / 10))))
+    n_clusters_per_class = min(2, max(1, int(2**n_real_features / nclasses)))
+    n_redundant = min(ncols - n_real_features, max(2, math.ceil(ncols / 20)))
     try:
         X, y = data.make_classification(
             dtype=datatype,
@@ -119,7 +119,7 @@ def make_classification_dataset(datatype, nrows, ncols, nclasses):
             n_informative=n_real_features,
             n_clusters_per_class=n_clusters_per_class,
             n_redundant=n_redundant,
-            n_classes=nclasses
+            n_classes=nclasses,
         )
 
         r = dsel.train_test_split(X, y, random_state=SEED, train_size=nrows)
@@ -131,7 +131,8 @@ def make_classification_dataset(datatype, nrows, ncols, nclasses):
 
     except ValueError:
         pytest.skip(
-            "Skipping the test for invalid combination of ncols/nclasses")
+            "Skipping the test for invalid combination of ncols/nclasses"
+        )
 
 
 def run_regression(datatype, loss, eps, dims):
@@ -142,7 +143,7 @@ def run_regression(datatype, loss, eps, dims):
     )
 
     # solving in primal is not supported by sklearn for this loss type.
-    skdual = loss == 'epsilon_insensitive'
+    skdual = loss == "epsilon_insensitive"
     # limit the max iterations for sklearn to reduce the max test time
     cuit = 10000
     skit = max(10, min(cuit, cuit * 1000 / nrows))
@@ -163,11 +164,14 @@ def run_regression(datatype, loss, eps, dims):
     gc.collect()
 
     try:
+
         def run_sklearn():
             skm = sk.LinearSVR(
-                loss=loss, epsilon=eps, max_iter=skit, dual=skdual)
+                loss=loss, epsilon=eps, max_iter=skit, dual=skdual
+            )
             skm.fit(X_train, y_train)
             return skm.score(X_test, y_test)
+
         sks = with_timeout(timeout=t, target=run_sklearn)
         good_enough(cus, sks, nrows)
     except TimeoutError:
@@ -175,33 +179,43 @@ def run_regression(datatype, loss, eps, dims):
 
 
 @pytest.mark.parametrize("datatype", [np.float32, np.float64])
-@pytest.mark.parametrize("loss", [
-    "epsilon_insensitive", "squared_epsilon_insensitive"])
-@pytest.mark.parametrize("dims", [
-    unit_param((3, 1)),
-    unit_param((100, 1)),
-    unit_param((1000, 10)),
-    unit_param((100, 100)),
-    unit_param((100, 300)),
-    quality_param((10000, 10)),
-    quality_param((10000, 50)),
-    stress_param((100000, 1000))])
+@pytest.mark.parametrize(
+    "loss", ["epsilon_insensitive", "squared_epsilon_insensitive"]
+)
+@pytest.mark.parametrize(
+    "dims",
+    [
+        unit_param((3, 1)),
+        unit_param((100, 1)),
+        unit_param((1000, 10)),
+        unit_param((100, 100)),
+        unit_param((100, 300)),
+        quality_param((10000, 10)),
+        quality_param((10000, 50)),
+        stress_param((100000, 1000)),
+    ],
+)
 def test_regression_basic(datatype, loss, dims):
     run_regression(datatype, loss, 0, dims)
 
 
-@pytest.mark.parametrize("loss", [
-    "epsilon_insensitive", "squared_epsilon_insensitive"])
+@pytest.mark.parametrize(
+    "loss", ["epsilon_insensitive", "squared_epsilon_insensitive"]
+)
 @pytest.mark.parametrize("epsilon", [0, 0.001, 0.1])
-@pytest.mark.parametrize("dims", [
-    quality_param((10000, 10)),
-    quality_param((10000, 50)),
-    quality_param((10000, 500))])
+@pytest.mark.parametrize(
+    "dims",
+    [
+        quality_param((10000, 10)),
+        quality_param((10000, 50)),
+        quality_param((10000, 500)),
+    ],
+)
 def test_regression_eps(loss, epsilon, dims):
     run_regression(np.float32, loss, epsilon, dims)
 
 
-def run_classification(datatype, penalty, loss, dims, nclasses):
+def run_classification(datatype, penalty, loss, dims, nclasses, class_weight):
 
     t = time.perf_counter()
     nrows, ncols = dims
@@ -211,21 +225,28 @@ def run_classification(datatype, penalty, loss, dims, nclasses):
     logger.debug(f"Data generation time: {time.perf_counter() - t} s.")
 
     # solving in primal is not supported by sklearn for this loss type.
-    skdual = loss == 'hinge' and penalty == 'l2'
-    if loss == 'hinge' and penalty == 'l1':
+    skdual = loss == "hinge" and penalty == "l2"
+    if loss == "hinge" and penalty == "l1":
         pytest.skip(
-            "sklearn does not support this combination of loss and penalty")
+            "sklearn does not support this combination of loss and penalty"
+        )
 
     # limit the max iterations for sklearn to reduce the max test time
     cuit = 10000
-    skit = max(10, min(cuit, cuit * 1000 / nrows))
+    skit = int(max(10, min(cuit, cuit * 1000 / nrows)))
 
     t = time.perf_counter()
     handle = cuml.Handle(n_streams=0)
     cum = cu.LinearSVC(
-        handle=handle, loss=loss, penalty=penalty, max_iter=cuit)
+        handle=handle,
+        loss=loss,
+        penalty=penalty,
+        max_iter=cuit,
+        class_weight=class_weight,
+    )
     cum.fit(X_train, y_train)
     cus = cum.score(X_test, y_test)
+    cud = cum.decision_function(X_test)
     handle.sync()
     t = time.perf_counter() - t
     logger.debug(f"Cuml time: {t} s.")
@@ -238,48 +259,153 @@ def run_classification(datatype, penalty, loss, dims, nclasses):
     X_test = X_test.get()
     y_train = y_train.get()
     y_test = y_test.get()
+    cud = cud.get()
     gc.collect()
 
     try:
+
         def run_sklearn():
             skm = sk.LinearSVC(
-                loss=loss, penalty=penalty, max_iter=skit, dual=skdual)
+                loss=loss,
+                penalty=penalty,
+                max_iter=skit,
+                dual=skdual,
+                class_weight=class_weight,
+            )
             skm.fit(X_train, y_train)
-            return skm.score(X_test, y_test)
-        sks = with_timeout(timeout=t, target=run_sklearn)
+            return skm.score(X_test, y_test), skm.decision_function(X_test)
+
+        sks, skd = with_timeout(timeout=t, target=run_sklearn)
         good_enough(cus, sks, nrows)
+
+        # always confirm correct shape of decision function
+        assert cud.shape == skd.shape, (
+            f"The decision_function returned different shape "
+            f"cud.shape = {cud.shape}; skd.shape = {skd.shape}))"
+        )
+
     except TimeoutError:
         pytest.skip(f"sklearn did not finish within {t} seconds.")
 
 
 @pytest.mark.parametrize("datatype", [np.float32, np.float64])
-@pytest.mark.parametrize("penalty", [
-    "l1", "l2"])
-@pytest.mark.parametrize("loss", [
-    "hinge", "squared_hinge"])
-@pytest.mark.parametrize("dims", [
-    unit_param((3, 1)),
-    unit_param((100, 1)),
-    unit_param((1000, 10)),
-    unit_param((100, 100)),
-    unit_param((100, 300)),
-    quality_param((10000, 10)),
-    quality_param((10000, 50)),
-    stress_param((100000, 1000))])
-def test_classification_1(datatype, penalty, loss, dims):
-    run_classification(datatype, penalty, loss, dims, 2)
+@pytest.mark.parametrize(
+    "dims",
+    [
+        unit_param((3, 1)),
+        unit_param((1000, 10)),
+    ],
+)
+@pytest.mark.parametrize("nclasses", [2, 7])
+@pytest.mark.parametrize("fit_intercept", [True, False])
+def test_decision_function(datatype, dims, nclasses, fit_intercept):
+    # The decision function is not stable to compare given random
+    # input data and models that are similar but not equal.
+    # This test will only check the cuml decision function
+    # implementation based on an imported model from sklearn.
+    nrows, ncols = dims
+    X_train, X_test, y_train, y_test = make_classification_dataset(
+        datatype, nrows, ncols, nclasses
+    )
+
+    skm = sk.LinearSVC(
+        max_iter=10,
+        dual=False,
+        fit_intercept=fit_intercept,
+    )
+    skm.fit(X_train.get(), y_train.get())
+    skd = skm.decision_function(X_test.get())
+
+    handle = cuml.Handle(n_streams=0)
+    cum = cu.LinearSVC(
+        handle=handle,
+        max_iter=10,
+        fit_intercept=fit_intercept,
+    )
+    cum.fit(X_train, y_train)
+    handle.sync()
+
+    # override model attributes
+    sk_coef_m, _, _, _ = input_to_cuml_array(
+        skm.coef_, convert_to_dtype=datatype, order="F"
+    )
+    cum.model_.coef_ = sk_coef_m
+    if fit_intercept:
+        sk_intercept_m, _, _, _ = input_to_cuml_array(
+            skm.intercept_, convert_to_dtype=datatype, order="F"
+        )
+        cum.model_.intercept_ = sk_intercept_m
+
+    cud = cum.decision_function(X_test)
+
+    assert np.allclose(
+        cud.get(), skd, atol=1e-4
+    ), "The decision_function returned different values"
+
+    # cleanup cuml objects so that we can more easily fork the process
+    # and test sklearn
+    del cum
+    X_train = X_train.get()
+    X_test = X_test.get()
+    y_train = y_train.get()
+    y_test = y_test.get()
+    cud = cud.get()
+    gc.collect()
 
 
 @pytest.mark.parametrize("datatype", [np.float32, np.float64])
-@pytest.mark.parametrize("dims", [
-    unit_param((3, 1)),
-    unit_param((100, 1)),
-    unit_param((1000, 10)),
-    unit_param((100, 100)),
-    unit_param((100, 300)),
-    quality_param((10000, 10)),
-    quality_param((10000, 50)),
-    stress_param((100000, 1000))])
+@pytest.mark.parametrize("penalty", ["l1", "l2"])
+@pytest.mark.parametrize("loss", ["hinge", "squared_hinge"])
+@pytest.mark.parametrize(
+    "dims",
+    [
+        unit_param((3, 1)),
+        unit_param((100, 1)),
+        unit_param((1000, 10)),
+        unit_param((100, 100)),
+        unit_param((100, 300)),
+        quality_param((10000, 10)),
+        quality_param((10000, 50)),
+        stress_param((100000, 1000)),
+    ],
+)
+def test_classification_1(datatype, penalty, loss, dims):
+    run_classification(datatype, penalty, loss, dims, 2, None)
+
+
+@pytest.mark.parametrize("datatype", [np.float32, np.float64])
+@pytest.mark.parametrize(
+    "dims",
+    [
+        unit_param((3, 1)),
+        unit_param((100, 1)),
+        unit_param((1000, 10)),
+        unit_param((100, 100)),
+        unit_param((100, 300)),
+        quality_param((10000, 10)),
+        quality_param((10000, 50)),
+        stress_param((100000, 1000)),
+    ],
+)
 @pytest.mark.parametrize("nclasses", [2, 3, 5, 8])
 def test_classification_2(datatype, dims, nclasses):
-    run_classification(datatype, "l2", "hinge", dims, nclasses)
+    run_classification(datatype, "l2", "hinge", dims, nclasses, "balanced")
+
+
+@pytest.mark.parametrize("datatype", [np.float32, np.float64])
+@pytest.mark.parametrize(
+    "dims",
+    [
+        unit_param((3, 1)),
+        unit_param((100, 1)),
+        unit_param((1000, 10)),
+        unit_param((100, 100)),
+        unit_param((100, 300)),
+        quality_param((10000, 10)),
+        quality_param((10000, 50)),
+        stress_param((100000, 1000)),
+    ],
+)
+@pytest.mark.parametrize("class_weight", [{0: 0.5, 1: 1.5}])
+def test_classification_3(datatype, dims, class_weight):
+    run_classification(datatype, "l2", "hinge", dims, 2, class_weight)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, NVIDIA CORPORATION.
+ * Copyright (c) 2021-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ __global__ void sigmas_kernel(const value_t* restrict distances,
 }
 
 /****************************************/
-/* Finds the best Gaussian bandwith for
+/* Finds the best Gaussian bandwidth for
     each row in the dataset             */
 template <typename value_idx, typename value_t>
 __global__ void sigmas_kernel_2d(const value_t* restrict distances,
@@ -290,8 +290,8 @@ __global__ void repulsive_kernel(const value_t* restrict Y,
                                  value_t* restrict Z_sum2,
                                  const value_idx n,
                                  const value_idx dim,
-                                 const value_t df_power,  // -(df + 1)/2)
-                                 const value_t recp_df)   // 1 / df
+                                 const value_t df_power,   // -(df + 1)/2)
+                                 const value_t recp_df)    // 1 / df
 {
   const auto j = (blockIdx.x * blockDim.x) + threadIdx.x;  // for every item in row
   const auto i = (blockIdx.y * blockDim.y) + threadIdx.y;  // for every row
@@ -400,8 +400,8 @@ value_t repulsive_forces(const value_t* restrict Y,
 }
 
 /****************************************/
-/* Applys or integrates all forces. Uses
-    more gains and contrains the output
+/* Applies or integrates all forces. Uses
+    more gains and constrains the output
     for output stability                */
 template <typename value_idx, typename value_t>
 __global__ void apply_kernel(value_t* restrict Y,

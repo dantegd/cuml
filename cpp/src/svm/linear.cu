@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, NVIDIA CORPORATION.
+ * Copyright (c) 2021-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,13 @@
 #include <random>
 #include <type_traits>
 
-#if defined RAFT_DISTANCE_COMPILED
+#if defined RAFT_COMPILED
 #include <raft/distance/specializations.cuh>
 #endif
 
 #include <common/nvtx.hpp>
 #include <cublas_v2.h>
+#include <cuml/linear_model/glm.hpp>
 #include <cuml/svm/svm_model.h>
 #include <cuml/svm/svm_parameter.h>
 #include <omp.h>
@@ -39,15 +40,13 @@
 #include <raft/matrix/matrix.cuh>
 #include <raft/util/cuda_utils.cuh>
 #include <rmm/device_uvector.hpp>
+#include <rmm/mr/device/per_device_resource.hpp>
 #include <thrust/copy.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
 #include <thrust/fill.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/tuple.h>
-
-#include <glm/ols.cuh>
-#include <glm/qn/qn.cuh>
 
 #include <cuml/svm/linear.hpp>
 
@@ -144,7 +143,7 @@ __global__ void predictProba(T* out, const T* z, const int nRows, const int nCla
   const T* rowIn = z + i * (Binary ? 1 : nClasses);
   T* rowOut      = out + i * nClasses;
 
-  // the largest 'z' in the row (to substract it from z for numeric stability).
+  // the largest 'z' in the row (to subtract it from z for numeric stability).
   T t      = std::numeric_limits<T>::lowest();
   T maxVal = t;
   int j    = threadIdx.x;
@@ -478,7 +477,6 @@ LinearSVMModel<T> LinearSVMModel<T>::fit(const raft::handle_t& handle,
                   wi,
                   &target,
                   &num_iters,
-                  worker.stream,
                   (T*)sampleWeight,
                   T(params.epsilon));
 
@@ -500,7 +498,6 @@ LinearSVMModel<T> LinearSVMModel<T>::fit(const raft::handle_t& handle,
                   psi,
                   &target,
                   &num_iters,
-                  worker.stream,
                   (T*)sampleWeight);
   }
   if (parallel) handle.sync_stream_pool();
@@ -512,6 +509,27 @@ LinearSVMModel<T> LinearSVMModel<T>::fit(const raft::handle_t& handle,
   }
 
   return model;
+}
+
+template <typename T>
+void LinearSVMModel<T>::decisionFunction(const raft::handle_t& handle,
+                                         const LinearSVMParams& params,
+                                         const LinearSVMModel<T>& model,
+                                         const T* X,
+                                         const std::size_t nRows,
+                                         const std::size_t nCols,
+                                         T* out)
+{
+  ASSERT(!isRegression(params.loss), "Decision function is not available for the regression model");
+  predictLinear(handle,
+                X,
+                model.w,
+                nRows,
+                nCols,
+                model.coefCols(),
+                params.fit_intercept,
+                out,
+                handle.get_stream());
 }
 
 template <typename T>

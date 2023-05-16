@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022, NVIDIA CORPORATION.
+# Copyright (c) 2022-2023, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,6 +48,11 @@ if (is_cuda_available()):
     import cuml.feature_extraction
     from cuml.fil import fil
 
+    from cuml.internals.global_settings import (
+        GlobalSettings,
+        _global_settings_data,
+    )
+
     from cuml.kernel_ridge.kernel_ridge import KernelRidge
 
     from cuml.linear_model.mbsgd_classifier import MBSGDClassifier
@@ -92,7 +97,8 @@ from cuml.internals.global_settings import (
         GlobalSettings, _global_settings_data)
 
 from cuml.internals.memory_utils import (
-    set_global_output_type, using_output_type
+    set_global_output_type,
+    using_output_type,
 )
 
 from cuml.cluster.hdbscan import HDBSCAN
@@ -109,17 +115,13 @@ from cuml.solvers.cd import CD
 from cuml.solvers.sgd import SGD
 from cuml.solvers.qn import QN
 
-# Import verion. Remove at end of file
-from ._version import get_versions
-
 # Version configuration
-__version__ = get_versions()['version']
-del get_versions
+__version__ = "23.06.00"
 
 
 def __getattr__(name):
 
-    if name == 'global_settings':
+    if name == "global_settings":
         try:
             return _global_settings_data.settings
         except AttributeError:

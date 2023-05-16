@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2022, NVIDIA CORPORATION.
+ * Copyright (c) 2018-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 
 namespace ML {
 namespace GLM {
+namespace detail {
 
 enum LINE_SEARCH_ALGORITHM {
   LBFGS_LS_BT_ARMIJO       = 1,
@@ -52,19 +53,19 @@ enum OPT_RETCODE {
 template <typename T = double>
 class LBFGSParam {
  public:
-  int m;      // lbfgs memory limit
-  T epsilon;  // controls convergence
-  int past;   // lookback for function value based convergence test
-  T delta;    // controls fun val based conv test
+  int m;           // lbfgs memory limit
+  T epsilon;       // controls convergence
+  int past;        // lookback for function value based convergence test
+  T delta;         // controls fun val based conv test
   int max_iterations;
   int linesearch;  // see enum above
   int max_linesearch;
-  T min_step;  // min. allowed step length
-  T max_step;  // max. allowed step length
-  T ftol;      // line  search tolerance
-  T wolfe;     // wolfe parameter
-  T ls_dec;    // line search decrease factor
-  T ls_inc;    // line search increase factor
+  T min_step;      // min. allowed step length
+  T max_step;      // max. allowed step length
+  T ftol;          // line  search tolerance
+  T wolfe;         // wolfe parameter
+  T ls_dec;        // line search decrease factor
+  T ls_inc;        // line search increase factor
 
  public:
   LBFGSParam()
@@ -268,6 +269,6 @@ struct op_pseudo_grad {
 
   HDI T operator()(const T x, const T dlossx) const { return get_pseudo_grad(x, dlossx, l1); }
 };
-
+};  // namespace detail
 };  // namespace GLM
 };  // namespace ML

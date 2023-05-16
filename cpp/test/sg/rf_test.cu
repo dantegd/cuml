@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2022, NVIDIA CORPORATION.
+ * Copyright (c) 2019-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -499,11 +499,11 @@ std::vector<int> min_samples_split       = {2, 10};
 std::vector<float> min_impurity_decrease = {0.0f, 1.0f, 10.0f};
 std::vector<int> n_streams               = {1, 2, 10};
 std::vector<CRITERION> split_criterion   = {CRITERION::INVERSE_GAUSSIAN,
-                                          CRITERION::GAMMA,
-                                          CRITERION::POISSON,
-                                          CRITERION::MSE,
-                                          CRITERION::GINI,
-                                          CRITERION::ENTROPY};
+                                            CRITERION::GAMMA,
+                                            CRITERION::POISSON,
+                                            CRITERION::MSE,
+                                            CRITERION::GINI,
+                                            CRITERION::ENTROPY};
 std::vector<int> seed                    = {0, 17};
 std::vector<int> n_labels                = {2, 10, 20};
 std::vector<bool> double_precision       = {false, true};
@@ -692,7 +692,7 @@ class RFQuantileVariableBinsTest : public ::testing::TestWithParam<QuantileTestP
     raft::handle_t handle(rmm::cuda_stream_per_thread, stream_pool);
     thrust::device_vector<T> data(params.n_rows);
 
-    // n_uniques gauranteed to be non-zero and smaller than `max_n_bins`
+    // n_uniques guaranteed to be non-zero and smaller than `max_n_bins`
     int n_uniques;
     while ((n_uniques = rand() % params.max_n_bins) == 0) {}
 
