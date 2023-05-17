@@ -18,6 +18,7 @@
 from cuml.datasets.utils import _create_rs_generator
 import cuml.internals
 from cuml.internals.safe_imports import cpu_only_import
+from cuml.internals.safe_imports import null_decorator
 nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 import numbers
 from collections.abc import Iterable

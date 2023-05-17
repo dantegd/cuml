@@ -16,6 +16,7 @@
 import cupy as cp
 import functools
 import numpy as np
+from cuml.internals.safe_imports import null_decorator
 nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 import pathlib
 import treelite.sklearn

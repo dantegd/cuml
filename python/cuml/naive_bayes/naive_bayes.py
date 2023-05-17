@@ -27,6 +27,7 @@ from cuml.common.array_descriptor import CumlArrayDescriptor
 from cuml.common import CumlArray
 import math
 import warnings
+from cuml.internals.safe_imports import null_decorator
 nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 
 from cuml.internals.safe_imports import gpu_only_import

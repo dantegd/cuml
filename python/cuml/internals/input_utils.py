@@ -72,6 +72,7 @@ cupyx_isspmatrix = gpu_only_import_from(
     "cupyx.scipy.sparse", "isspmatrix", alt=return_false
 )
 
+from cuml.internals.safe_imports import null_decorator
 nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 PandasSeries = cpu_only_import_from("pandas", "Series")
 PandasDataFrame = cpu_only_import_from("pandas", "DataFrame")

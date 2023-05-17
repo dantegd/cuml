@@ -22,7 +22,6 @@ import numbers
 from importlib import import_module
 from cuml.internals.safe_imports import cpu_only_import
 np = cpu_only_import('numpy')
-nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 import typing
 
 import cuml
@@ -53,6 +52,9 @@ from cuml.internals.safe_imports import (
 
 from cuml.common.doc_utils import generate_docstring
 from cuml.internals.mixins import TagsMixin
+
+from cuml.internals.safe_imports import null_decorator
+nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 
 cp_ndarray = gpu_only_import_from('cupy', 'ndarray')
 cp = gpu_only_import('cupy')

@@ -106,7 +106,6 @@ outputs:
       string: py{{ py_version }}_{{ GIT_DESCRIBE_HASH }}_{{ GIT_DESCRIBE_NUMBER }}
     requirements:
       run:
-        - {{ pin_compatible('cudatoolkit', max_pin='x', min_pin='x') }}
         - scikit-learn=1.2
         - hdbscan=0.8.29
         - umap-learn=0.5.3

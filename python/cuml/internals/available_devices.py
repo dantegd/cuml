@@ -17,14 +17,8 @@
 from cuml.internals.safe_imports import gpu_only_import_from, UnavailableError
 
 from functools import cache  # requires Python >= 3.9
-except ImportError:
-    from functools import lru_cache
-
-    cache = lru_cache(maxsize=None)
-
 
 get_cuda_count = gpu_only_import_from("rmm._cuda.gpu", "getDeviceCount")
-
 
 @cache
 def is_cuda_available():

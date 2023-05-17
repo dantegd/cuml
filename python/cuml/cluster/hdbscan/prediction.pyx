@@ -322,13 +322,11 @@ def membership_vector(clusterer, points_to_predict, batch_size=4096, convert_dty
 
     cdef uintptr_t membership_vec_ptr = membership_vec.ptr
 
-    cdef CondensedHierarchy[int, float] *condensed_tree = \
-        <CondensedHierarchy[int, float]*><size_t> clusterer.condensed_tree_ptr
-
-    cdef PredictionData *prediction_data_ = \
-        <PredictionData*><size_t>clusterer.prediction_data_ptr
-
     IF GPUBUILD == 1:
+        cdef CondensedHierarchy[int, float] *condensed_tree = \
+            <CondensedHierarchy[int, float]*><size_t> clusterer.condensed_tree_ptr
+        cdef PredictionData *prediction_data_ = \
+            <PredictionData*><size_t>clusterer.prediction_data_ptr
         cdef handle_t* handle_ = <handle_t*><size_t>clusterer.handle.getHandle()
 
         compute_membership_vector(handle_[0],

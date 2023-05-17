@@ -15,6 +15,7 @@
 #
 
 from cuml.common import has_scipy
+from cuml.internals.safe_imports import null_decorator
 nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 import cuml.internals.logger as logger
 from cuml.internals.safe_imports import cpu_only_import

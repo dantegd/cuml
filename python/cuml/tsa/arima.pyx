@@ -19,6 +19,7 @@
 from cuml.internals.safe_imports import cpu_only_import
 np = cpu_only_import('numpy')
 import sys
+from cuml.internals.safe_imports import null_decorator
 nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 
 import ctypes

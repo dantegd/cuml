@@ -27,6 +27,7 @@ from cuml.internals.safe_imports import (
 )
 
 cpx_sparse = gpu_only_import("cupyx.scipy.sparse")
+from cuml.internals.safe_imports import null_decorator
 nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 scipy_sparse = cpu_only_import("scipy.sparse")
 

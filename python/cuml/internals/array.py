@@ -55,6 +55,7 @@ DaskCudfSeries = gpu_only_import_from("dask_cudf.core", "Series")
 DaskDataFrame = gpu_only_import_from("dask.dataframe", "DataFrame")
 DaskSeries = gpu_only_import_from("dask.dataframe", "Series")
 DeviceBuffer = gpu_only_import_from("rmm", "DeviceBuffer")
+from cuml.internals.safe_imports import null_decorator
 nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 PandasDataFrame = cpu_only_import_from("pandas", "DataFrame")
 PandasIndex = cpu_only_import_from("pandas", "Index")
