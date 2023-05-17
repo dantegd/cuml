@@ -18,7 +18,7 @@
 
 from cuml.internals.safe_imports import cpu_only_import
 np = cpu_only_import('numpy')
-import nvtx
+nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 from cuml.internals.safe_imports import gpu_only_import
 rmm = gpu_only_import('rmm')
 import warnings
@@ -411,7 +411,7 @@ class RandomForestRegressor(BaseRandomForestModel,
                                  algo=algo,
                                  fil_sparse_format=fil_sparse_format)
 
-    @nvtx.annotate(
+    @nvtx_annotate(
         message="fit RF-Regressor @randomforestregressor.pyx",
         domain="cuml_python")
     @generate_docstring()
@@ -533,7 +533,7 @@ class RandomForestRegressor(BaseRandomForestModel,
         del(X_m)
         return preds
 
-    @nvtx.annotate(
+    @nvtx_annotate(
         message="predict RF-Regressor @randomforestclassifier.pyx",
         domain="cuml_python")
     @insert_into_docstring(parameters=[('dense', '(n_samples, n_features)')],
@@ -593,7 +593,7 @@ class RandomForestRegressor(BaseRandomForestModel,
 
         return preds
 
-    @nvtx.annotate(
+    @nvtx_annotate(
         message="score RF-Regressor @randomforestclassifier.pyx",
         domain="cuml_python")
     @insert_into_docstring(parameters=[('dense', '(n_samples, n_features)'),

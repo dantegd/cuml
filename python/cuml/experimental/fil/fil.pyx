@@ -16,7 +16,7 @@
 import cupy as cp
 import functools
 import numpy as np
-import nvtx
+nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 import pathlib
 import treelite.sklearn
 import warnings
@@ -1044,7 +1044,7 @@ class ForestInference(UniversalBase, CMajorInputTagMixin):
             device_id=device_id
         )
 
-    @nvtx.annotate(
+    @nvtx_annotate(
         message='ForestInference.predict_proba',
         domain='cuml_python'
     )
@@ -1092,7 +1092,7 @@ class ForestInference(UniversalBase, CMajorInputTagMixin):
             )
         return self.forest.predict(X, preds=preds, chunk_size=chunk_size)
 
-    @nvtx.annotate(
+    @nvtx_annotate(
         message='ForestInference.predict',
         domain='cuml_python'
     )
@@ -1179,7 +1179,7 @@ class ForestInference(UniversalBase, CMajorInputTagMixin):
                 X, predict_type="default", preds=preds, chunk_size=chunk_size
             )
 
-    @nvtx.annotate(
+    @nvtx_annotate(
         message='ForestInference.predict_per_tree',
         domain='cuml_python'
     )

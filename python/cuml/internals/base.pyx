@@ -22,7 +22,7 @@ import numbers
 from importlib import import_module
 from cuml.internals.safe_imports import cpu_only_import
 np = cpu_only_import('numpy')
-import nvtx
+nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 import typing
 
 import cuml
@@ -452,7 +452,7 @@ class Base(TagsMixin,
                                  addr=hex(id(self)))
                 msg = msg[5:]  # remove cuml.
                 func = getattr(self, func_name)
-                func = nvtx.annotate(message=msg, domain="cuml_python")(func)
+                func = nvtx_annotate(message=msg, domain="cuml_python")(func)
                 setattr(self, func_name, func)
 
 

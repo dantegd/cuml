@@ -17,7 +17,7 @@
 # distutils: language = c++
 
 import typing
-import nvtx
+nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
 
 from cuml.internals.safe_imports import cpu_only_import
 np = cpu_only_import('numpy')
@@ -74,7 +74,7 @@ inp_to_dtype = {
 }
 
 
-@nvtx.annotate(message="datasets.make_regression", domain="cuml_python")
+@nvtx_annotate(message="datasets.make_regression", domain="cuml_python")
 @cuml.internals.api_return_generic()
 def make_regression(
     n_samples=100,
