@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2023, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 from collections import namedtuple
 
+from cuml.internals.device_support import GPU_ENABLED
 from cuml.internals.array import CumlArray
 from cuml.internals.array_sparse import SparseCumlArray
 from cuml.internals.global_settings import GlobalSettings
@@ -30,42 +31,62 @@ from cuml.internals.safe_imports import (
     null_decorator,
     return_false,
     UnavailableError,
+    UnavailableObject
 )
 
-cudf = gpu_only_import("cudf")
-cp = gpu_only_import("cupy")
-cupyx = gpu_only_import("cupyx")
+cudf = gpu_only_import('cudf')
+cp = gpu_only_import('cupy')
+cupyx = gpu_only_import('cupyx')
 global_settings = GlobalSettings()
-numba_cuda = gpu_only_import("numba.cuda")
-np = cpu_only_import("numpy")
-pd = cpu_only_import("pandas")
+numba_cuda = gpu_only_import('numba.cuda')
+np = cpu_only_import('numpy')
+pd = cpu_only_import('pandas')
 scipy_sparse = safe_import(
-    "scipy.sparse", msg="Optional dependency scipy is not installed"
+    'scipy.sparse',
+    msg='Optional dependency scipy is not installed'
 )
 
-cp_ndarray = gpu_only_import_from("cupy", "ndarray")
-CudfSeries = gpu_only_import_from("cudf", "Series")
-CudfDataFrame = gpu_only_import_from("cudf", "DataFrame")
-DaskCudfSeries = gpu_only_import_from("dask_cudf.core", "Series")
-DaskCudfDataFrame = gpu_only_import_from("dask_cudf.core", "DataFrame")
-np_ndarray = cpu_only_import_from("numpy", "ndarray")
-numba_devicearray = gpu_only_import_from("numba.cuda", "devicearray")
+cp_ndarray = gpu_only_import_from('cupy', 'ndarray',
+                                  alt=UnavailableObject)
+CudfSeries = gpu_only_import_from('cudf', 'Series',
+                                  alt=UnavailableObject)
+CudfDataFrame = gpu_only_import_from('cudf', 'DataFrame',
+                                     alt=UnavailableObject)
+DaskCudfSeries = gpu_only_import_from('dask_cudf.core', 'Series',
+                                      alt=UnavailableObject)
+DaskCudfDataFrame = gpu_only_import_from('dask_cudf.core', 'DataFrame',
+                                         alt=UnavailableObject)
+np_ndarray = cpu_only_import_from('numpy', 'ndarray')
+numba_devicearray = gpu_only_import_from('numba.cuda', 'devicearray',
+                                         alt=UnavailableObject)
 try:
-    NumbaDeviceNDArrayBase = numba_devicearray.DeviceNDArrayBase
+    if GPU_ENABLED:
+        NumbaDeviceNDArrayBase = numba_devicearray.DeviceNDArrayBase
+    else:
+        NumbaDeviceNDArrayBase = numba_devicearray
 except UnavailableError:
     NumbaDeviceNDArrayBase = numba_devicearray
 scipy_isspmatrix = safe_import_from(
-    "scipy.sparse", "isspmatrix", alt=return_false
+    'scipy.sparse',
+    'isspmatrix',
+    alt=return_false
 )
 cupyx_isspmatrix = gpu_only_import_from(
-    "cupyx.scipy.sparse", "isspmatrix", alt=return_false
+    'cupyx.scipy.sparse',
+    'isspmatrix',
+    alt=return_false
 )
 
-nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
-PandasSeries = cpu_only_import_from("pandas", "Series")
-PandasDataFrame = cpu_only_import_from("pandas", "DataFrame")
+nvtx_annotate = gpu_only_import_from(
+    'nvtx',
+    'annotate',
+    alt=null_decorator
+)
+PandasSeries = cpu_only_import_from('pandas', 'Series')
+PandasDataFrame = cpu_only_import_from('pandas', 'DataFrame')
 
-cuml_array = namedtuple("cuml_array", "array n_rows n_cols dtype")
+
+cuml_array = namedtuple('cuml_array', 'array n_rows n_cols dtype')
 
 _input_type_to_str = {
     CumlArray: "cuml",
@@ -76,7 +97,7 @@ _input_type_to_str = {
     CudfDataFrame: "cudf",
     PandasSeries: "pandas",
     PandasDataFrame: "pandas",
-    NumbaDeviceNDArrayBase: "numba",
+    NumbaDeviceNDArrayBase: "numba"
 }
 
 _input_type_to_mem_type = {
@@ -86,20 +107,20 @@ _input_type_to_mem_type = {
     CudfDataFrame: MemoryType.device,
     PandasSeries: MemoryType.host,
     PandasDataFrame: MemoryType.host,
-    NumbaDeviceNDArrayBase: MemoryType.device,
+    NumbaDeviceNDArrayBase: MemoryType.device
 }
 
 _SPARSE_TYPES = [SparseCumlArray]
 
 try:
-    _input_type_to_str[cupyx.scipy.sparse.spmatrix] = "cupy"
+    _input_type_to_str[cupyx.scipy.sparse.spmatrix] = 'cupy'
     _SPARSE_TYPES.append(cupyx.scipy.sparse.spmatrix)
     _input_type_to_mem_type[cupyx.scipy.sparse.spmatrix] = MemoryType.device
 except UnavailableError:
     pass
 
 try:
-    _input_type_to_str[scipy_sparse.spmatrix] = "numpy"
+    _input_type_to_str[scipy_sparse.spmatrix] = 'numpy'
     _SPARSE_TYPES.append(scipy_sparse.spmatrix)
     _input_type_to_mem_type[scipy_sparse.spmatrix] = MemoryType.device
 except UnavailableError:
@@ -137,7 +158,7 @@ def get_supported_input_type(X):
     if isinstance(X, SparseCumlArray):
         return SparseCumlArray
 
-    if isinstance(X, CudfSeries):
+    if (isinstance(X, CudfSeries)):
         if X.null_count != 0:
             return None
         else:
@@ -165,7 +186,7 @@ def get_supported_input_type(X):
         # For some reason, numpy scalar types also implement
         # `__array_interface__`. See numpy.generic.__doc__. Exclude those types
         # as well as np.dtypes
-        if not isinstance(X, np.generic) and not isinstance(X, type):
+        if (not isinstance(X, np.generic) and not isinstance(X, type)):
             return np.ndarray
 
     try:
@@ -175,17 +196,17 @@ def get_supported_input_type(X):
         pass
 
     try:
-        if scipy_sparse.isspmatrix(X):
+        if (scipy_sparse.isspmatrix(X)):
             return scipy_sparse.spmatrix
     except UnavailableError:
         pass
 
-    # Return None if this type is not supported
+    # Return None if this type isnt supported
     return None
 
 
 def determine_array_type(X):
-    if X is None:
+    if (X is None):
         return None
 
     # Get the generic type
@@ -196,7 +217,7 @@ def determine_array_type(X):
 
 def determine_array_dtype(X):
 
-    if X is None:
+    if (X is None):
         return None
 
     if isinstance(X, (CudfDataFrame, PandasDataFrame)):
@@ -225,13 +246,13 @@ def determine_array_type_full(X):
     (string, bool) Returns a tuple of the array type string and a boolean if it
         is a sparse array.
     """
-    if X is None:
+    if (X is None):
         return None, None
 
     # Get the generic type
     gen_type = get_supported_input_type(X)
 
-    if gen_type is None:
+    if (gen_type is None):
         return None, None
 
     return _input_type_to_str[gen_type], gen_type in _SPARSE_TYPES
@@ -239,24 +260,17 @@ def determine_array_type_full(X):
 
 def is_array_like(X):
     if (
-        hasattr(X, "__cuda_array_interface__")
+        hasattr(X, '__cuda_array_interface__')
         or (
-            hasattr(X, "__array_interface__")
+            hasattr(X, '__array_interface__')
             and not (
                 isinstance(X, global_settings.xpy.generic)
                 or isinstance(X, type)
             )
-        )
-        or isinstance(
-            X,
-            (
-                SparseCumlArray,
-                CudfSeries,
-                PandasSeries,
-                CudfDataFrame,
-                PandasDataFrame,
-            ),
-        )
+        ) or isinstance(X, (
+            SparseCumlArray, CudfSeries, PandasSeries, CudfDataFrame,
+            PandasDataFrame
+        ))
     ):
         return True
 
@@ -278,25 +292,20 @@ def is_array_like(X):
     return False
 
 
-@nvtx_annotate(
-    message="common.input_utils.input_to_cuml_array",
-    category="utils",
-    domain="cuml_python",
-)
-def input_to_cuml_array(
-    X,
-    order="F",
-    deepcopy=False,
-    check_dtype=False,
-    convert_to_dtype=False,
-    check_mem_type=False,
-    convert_to_mem_type=None,
-    safe_dtype_conversion=True,
-    check_cols=False,
-    check_rows=False,
-    fail_on_order=False,
-    force_contiguous=True,
-):
+@nvtx_annotate(message="common.input_utils.input_to_cuml_array",
+               category="utils", domain="cuml_python")
+def input_to_cuml_array(X,
+                        order='F',
+                        deepcopy=False,
+                        check_dtype=False,
+                        convert_to_dtype=False,
+                        check_mem_type=False,
+                        convert_to_mem_type=None,
+                        safe_dtype_conversion=True,
+                        check_cols=False,
+                        check_rows=False,
+                        fail_on_order=False,
+                        force_contiguous=True):
     """
     Convert input X to CumlArray.
 
@@ -378,12 +387,12 @@ def input_to_cuml_array(
         check_cols=check_cols,
         check_rows=check_rows,
         fail_on_order=fail_on_order,
-        force_contiguous=force_contiguous,
+        force_contiguous=force_contiguous
     )
     try:
-        shape = arr.__cuda_array_interface__["shape"]
+        shape = arr.__cuda_array_interface__['shape']
     except AttributeError:
-        shape = arr.__array_interface__["shape"]
+        shape = arr.__array_interface__['shape']
 
     n_rows = shape[0]
 
@@ -392,26 +401,24 @@ def input_to_cuml_array(
     else:
         n_cols = 1
 
-    return cuml_array(array=arr, n_rows=n_rows, n_cols=n_cols, dtype=arr.dtype)
+    return cuml_array(array=arr,
+                      n_rows=n_rows,
+                      n_cols=n_cols,
+                      dtype=arr.dtype)
 
 
-@nvtx_annotate(
-    message="common.input_utils.input_to_cupy_array",
-    category="utils",
-    domain="cuml_python",
-)
-def input_to_cupy_array(
-    X,
-    order="F",
-    deepcopy=False,
-    check_dtype=False,
-    convert_to_dtype=False,
-    check_cols=False,
-    check_rows=False,
-    fail_on_order=False,
-    force_contiguous=True,
-    fail_on_null=True,
-) -> cuml_array:
+@nvtx_annotate(message="common.input_utils.input_to_cupy_array",
+               category="utils", domain="cuml_python")
+def input_to_cupy_array(X,
+                        order='F',
+                        deepcopy=False,
+                        check_dtype=False,
+                        convert_to_dtype=False,
+                        check_cols=False,
+                        check_rows=False,
+                        fail_on_order=False,
+                        force_contiguous=True,
+                        fail_on_null=True) -> cuml_array:
     """
     Identical to input_to_cuml_array but it returns a cupy array instead of
     CumlArray
@@ -421,43 +428,36 @@ def input_to_cupy_array(
             try:
                 X = X.values
             except ValueError:
-                X = X.astype("float64", copy=False)
+                X = X.astype('float64', copy=False)
                 X.fillna(cp.nan, inplace=True)
                 X = X.values
 
-    out_data = input_to_cuml_array(
-        X,
-        order=order,
-        deepcopy=deepcopy,
-        check_dtype=check_dtype,
-        convert_to_dtype=convert_to_dtype,
-        check_cols=check_cols,
-        check_rows=check_rows,
-        fail_on_order=fail_on_order,
-        force_contiguous=force_contiguous,
-        convert_to_mem_type=MemoryType.device,
-    )
+    out_data = input_to_cuml_array(X,
+                                   order=order,
+                                   deepcopy=deepcopy,
+                                   check_dtype=check_dtype,
+                                   convert_to_dtype=convert_to_dtype,
+                                   check_cols=check_cols,
+                                   check_rows=check_rows,
+                                   fail_on_order=fail_on_order,
+                                   force_contiguous=force_contiguous,
+                                   convert_to_mem_type=MemoryType.device)
 
     return out_data._replace(array=out_data.array.to_output("cupy"))
 
 
-@nvtx_annotate(
-    message="common.input_utils.input_to_host_array",
-    category="utils",
-    domain="cuml_python",
-)
-def input_to_host_array(
-    X,
-    order="F",
-    deepcopy=False,
-    check_dtype=False,
-    convert_to_dtype=False,
-    check_cols=False,
-    check_rows=False,
-    fail_on_order=False,
-    force_contiguous=True,
-    fail_on_null=True,
-) -> cuml_array:
+@nvtx_annotate(message="common.input_utils.input_to_host_array",
+               category="utils", domain="cuml_python")
+def input_to_host_array(X,
+                        order='F',
+                        deepcopy=False,
+                        check_dtype=False,
+                        convert_to_dtype=False,
+                        check_cols=False,
+                        check_rows=False,
+                        fail_on_order=False,
+                        force_contiguous=True,
+                        fail_on_null=True) -> cuml_array:
     """
     Identical to input_to_cuml_array but it returns a host (NumPy array instead
     of CumlArray
@@ -466,27 +466,28 @@ def input_to_host_array(
         try:
             X = X.values
         except ValueError:
-            X = X.astype("float64", copy=False)
+            X = X.astype('float64', copy=False)
             X.fillna(cp.nan, inplace=True)
             X = X.values
 
-    out_data = input_to_cuml_array(
-        X,
-        order=order,
-        deepcopy=deepcopy,
-        check_dtype=check_dtype,
-        convert_to_dtype=convert_to_dtype,
-        check_cols=check_cols,
-        check_rows=check_rows,
-        fail_on_order=fail_on_order,
-        force_contiguous=force_contiguous,
-        convert_to_mem_type=MemoryType.host,
-    )
+    out_data = input_to_cuml_array(X,
+                                   order=order,
+                                   deepcopy=deepcopy,
+                                   check_dtype=check_dtype,
+                                   convert_to_dtype=convert_to_dtype,
+                                   check_cols=check_cols,
+                                   check_rows=check_rows,
+                                   fail_on_order=fail_on_order,
+                                   force_contiguous=force_contiguous,
+                                   convert_to_mem_type=MemoryType.host)
 
     return out_data._replace(array=out_data.array.to_output("numpy"))
 
 
-def convert_dtype(X, to_dtype=np.float32, legacy=True, safe_dtype=True):
+def convert_dtype(X,
+                  to_dtype=np.float32,
+                  legacy=True,
+                  safe_dtype=True):
     """
     Convert X to be of dtype `dtype`, raising a TypeError
     if the conversion would lose information.
@@ -500,9 +501,13 @@ def convert_dtype(X, to_dtype=np.float32, legacy=True, safe_dtype=True):
         cur_dtype = determine_array_dtype(X)
         if not global_settings.xpy.can_cast(cur_dtype, to_dtype):
             try:
-                target_dtype_range = global_settings.xpy.iinfo(to_dtype)
+                target_dtype_range = global_settings.xpy.iinfo(
+                    to_dtype
+                )
             except ValueError:
-                target_dtype_range = global_settings.xpy.finfo(to_dtype)
+                target_dtype_range = global_settings.xpy.finfo(
+                    to_dtype
+                )
             out_of_range = (
                 (X < target_dtype_range.min) | (X > target_dtype_range.max)
             ).any()
@@ -530,10 +535,10 @@ def convert_dtype(X, to_dtype=np.float32, legacy=True, safe_dtype=True):
 
 
 def order_to_str(order):
-    if order == "F":
-        return "column ('F')"
-    elif order == "C":
-        return "row ('C')"
+    if order == 'F':
+        return 'column (\'F\')'
+    elif order == 'C':
+        return 'row (\'C\')'
 
 
 def sparse_scipy_to_cp(sp, dtype):

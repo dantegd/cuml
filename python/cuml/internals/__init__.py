@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2023, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,12 @@
 # limitations under the License.
 #
 
-from cuml.internals.base_helpers import BaseMetaClass, _tags_class_and_instance
+from cuml.internals.device_support import CPU_ENABLED, GPU_ENABLED
+
+from cuml.internals.base_helpers import (
+    BaseMetaClass,
+    _tags_class_and_instance
+)
 from cuml.internals.api_decorators import (
     _deprecate_pos_args,
     api_base_fit_transform,
@@ -36,5 +41,8 @@ from cuml.internals.api_context_managers import (
     set_api_output_dtype,
     set_api_output_type,
 )
-from cuml.internals.internals import GraphBasedDimRedCallback
+
+if GPU_ENABLED:
+    from cuml.internals.internals import GraphBasedDimRedCallback
+
 from cuml.internals.constants import CUML_WRAPPED_FLAG

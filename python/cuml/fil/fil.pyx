@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2023, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,12 @@
 
 # distutils: language = c++
 
+import copy
+import ctypes
+import math
 from cuml.internals.safe_imports import cpu_only_import
 np = cpu_only_import('numpy')
+import warnings
 pd = cpu_only_import('pandas')
 from inspect import getdoc
 
@@ -26,7 +30,7 @@ rmm = gpu_only_import('rmm')
 
 from libcpp cimport bool
 from libc.stdint cimport uintptr_t
-from libc.stdlib cimport free
+from libc.stdlib cimport calloc, malloc, free
 
 import cuml.internals
 from cuml.internals.array import CumlArray
@@ -39,29 +43,25 @@ from cuml.common.doc_utils import _parameters_docstrings
 from rmm._lib.memory_resource cimport DeviceMemoryResource
 from rmm._lib.memory_resource cimport get_current_device_resource
 
+import treelite
 import treelite.sklearn as tl_skl
 
 cimport cuml.common.cuda
 
 cdef extern from "treelite/c_api.h":
     ctypedef void* ModelHandle
-    cdef int TreeliteLoadXGBoostModelEx(const char* filename,
-                                        const char* config_json,
-                                        ModelHandle* out) except +
-    cdef int TreeliteLoadXGBoostJSONEx(const char* filename,
-                                       const char* config_json,
-                                       ModelHandle* out) except +
+    cdef int TreeliteLoadXGBoostModel(const char* filename,
+                                      ModelHandle* out) except +
+    cdef int TreeliteLoadXGBoostJSON(const char* filename,
+                                     ModelHandle* out) except +
     cdef int TreeliteFreeModel(ModelHandle handle) except +
     cdef int TreeliteQueryNumTree(ModelHandle handle, size_t* out) except +
     cdef int TreeliteQueryNumFeature(ModelHandle handle, size_t* out) except +
     cdef int TreeliteQueryNumClass(ModelHandle handle, size_t* out) except +
-    cdef int TreeliteLoadLightGBMModelEx(const char* filename,
-                                         const char* config_json,
-                                         ModelHandle* out) except +
+    cdef int TreeliteLoadLightGBMModel(const char* filename,
+                                       ModelHandle* out) except +
     cdef int TreeliteSerializeModel(const char* filename,
                                     ModelHandle handle) except +
-    cdef int TreeliteDeserializeModel(const char* filename,
-                                      ModelHandle handle) except +
     cdef const char* TreeliteGetLastError()
 
 
@@ -116,13 +116,13 @@ cdef class TreeliteModel():
         TreeliteQueryNumFeature(self.handle, &out)
         return out
 
-    @classmethod
-    def free_treelite_model(cls, model_handle):
+    @staticmethod
+    def free_treelite_model(model_handle):
         cdef uintptr_t model_ptr = <uintptr_t>model_handle
         TreeliteFreeModel(<ModelHandle> model_ptr)
 
-    @classmethod
-    def from_filename(cls, filename, model_type="xgboost"):
+    @staticmethod
+    def from_filename(filename, model_type="xgboost"):
         """
         Returns a TreeliteModel object loaded from `filename`
 
@@ -135,15 +135,14 @@ cdef class TreeliteModel():
             Type of model: 'xgboost', 'xgboost_json', or 'lightgbm'
         """
         filename_bytes = filename.encode("UTF-8")
-        config_bytes = "{}".encode("UTF-8")
         cdef ModelHandle handle
         if model_type == "xgboost":
-            res = TreeliteLoadXGBoostModelEx(filename_bytes, config_bytes, &handle)
+            res = TreeliteLoadXGBoostModel(filename_bytes, &handle)
             if res < 0:
                 err = TreeliteGetLastError()
                 raise RuntimeError("Failed to load %s (%s)" % (filename, err))
         elif model_type == "xgboost_json":
-            res = TreeliteLoadXGBoostJSONEx(filename_bytes, config_bytes, &handle)
+            res = TreeliteLoadXGBoostJSON(filename_bytes, &handle)
             if res < 0:
                 err = TreeliteGetLastError()
                 raise RuntimeError("Failed to load %s (%s)" % (filename, err))
@@ -151,7 +150,7 @@ cdef class TreeliteModel():
             logger.warn("Treelite currently does not support float64 model"
                         " parameters. Accuracy may degrade slightly relative"
                         " to native LightGBM invocation.")
-            res = TreeliteLoadLightGBMModelEx(filename_bytes, config_bytes, &handle)
+            res = TreeliteLoadLightGBMModel(filename_bytes, &handle)
             if res < 0:
                 err = TreeliteGetLastError()
                 raise RuntimeError("Failed to load %s (%s)" % (filename, err))
@@ -174,9 +173,8 @@ cdef class TreeliteModel():
         filename_bytes = filename.encode("UTF-8")
         TreeliteSerializeModel(filename_bytes, self.handle)
 
-    @classmethod
-    def from_treelite_model_handle(cls,
-                                   treelite_handle,
+    @staticmethod
+    def from_treelite_model_handle(treelite_handle,
                                    take_handle_ownership=False):
         cdef ModelHandle handle = <ModelHandle> <size_t> treelite_handle
         model = TreeliteModel(owns_handle=take_handle_ownership)
@@ -231,7 +229,7 @@ cdef extern from "cuml/fil/fil.h" namespace "ML::fil":
         # limit number of CUDA blocks launched per GPU SM (or unlimited if 0)
         int blocks_per_sm
         # multiple (neighboring) threads infer on the same tree within a block
-        # this improves memory bandwidth near tree root (but uses more shared
+        # this improves memory bandwith near tree root (but uses more shared
         # memory)
         int threads_per_tree
         # n_items is how many input samples (items) any thread processes.
@@ -377,7 +375,7 @@ cdef class ForestInference_impl():
                                       " the FIL model.")
         fil_dtype = self.get_dtype()
         cdef uintptr_t X_ptr
-        X_m, n_rows, _n_cols, _dtype = \
+        X_m, n_rows, n_cols, dtype = \
             input_to_cuml_array(X, order='C',
                                 convert_to_dtype=fil_dtype,
                                 safe_dtype_conversion=safe_dtype_conversion,
@@ -606,12 +604,12 @@ class ForestInference(Base,
            algo='AUTO'
 
     blocks_per_sm : integer (default=0)
-        (experimental) Indicates how the number of thread blocks to launch
+        (experimental) Indicates how the number of thread blocks to lauch
         for the inference kernel is determined.
 
         - ``0`` (default): Launches the number of blocks proportional to
           the number of data rows
-        - ``>= 1``: Attempts to launch blocks_per_sm blocks per SM. This
+        - ``>= 1``: Attempts to lauch blocks_per_sm blocks per SM. This
           will fail if blocks_per_sm blocks result in more threads than the
           maximum supported number of threads per GPU. Even if successful,
           it is not guaranteed that blocks_per_sm blocks will run on an SM
@@ -794,12 +792,12 @@ class ForestInference(Base,
                algo='AUTO'
 
         blocks_per_sm : integer (default=0)
-            (experimental) Indicates how the number of thread blocks to launch
+            (experimental) Indicates how the number of thread blocks to lauch
             for the inference kernel is determined.
 
             - ``0`` (default): Launches the number of blocks proportional to
               the number of data rows
-            - ``>= 1``: Attempts to launch blocks_per_sm blocks per SM. This
+            - ``>= 1``: Attempts to lauch blocks_per_sm blocks per SM. This
               will fail if blocks_per_sm blocks result in more threads than the
               maximum supported number of threads per GPU. Even if successful,
               it is not guaranteed that blocks_per_sm blocks will run on an SM
@@ -845,9 +843,8 @@ class ForestInference(Base,
         )
         return cuml_fm
 
-    @classmethod
-    def load(cls,
-             filename,
+    @staticmethod
+    def load(filename,
              output_class=False,
              threshold=0.50,
              algo='auto',
@@ -897,12 +894,12 @@ class ForestInference(Base,
                algo='AUTO'
 
         blocks_per_sm : integer (default=0)
-            (experimental) Indicates how the number of thread blocks to launch
+            (experimental) Indicates how the number of thread blocks to lauch
             for the inference kernel is determined.
 
             - ``0`` (default): Launches the number of blocks proportional to
               the number of data rows
-            - ``>= 1``: Attempts to launch blocks_per_sm blocks per SM. This
+            - ``>= 1``: Attempts to lauch blocks_per_sm blocks per SM. This
               will fail if blocks_per_sm blocks result in more threads than the
               maximum supported number of threads per GPU. Even if successful,
               it is not guaranteed that blocks_per_sm blocks will run on an SM
@@ -933,20 +930,11 @@ class ForestInference(Base,
             inferencing on the model read from the file.
 
         """
+        kwargs = locals()
+        [kwargs.pop(key) for key in ['filename', 'handle', 'model_type']]
         cuml_fm = ForestInference(handle=handle)
         tl_model = TreeliteModel.from_filename(filename, model_type=model_type)
-        cuml_fm.load_from_treelite_model(
-            model=tl_model,
-            output_class=output_class,
-            threshold=threshold,
-            algo=algo,
-            storage_type=storage_type,
-            blocks_per_sm=blocks_per_sm,
-            threads_per_tree=threads_per_tree,
-            n_items=n_items,
-            compute_shape_str=compute_shape_str,
-            precision=precision
-        )
+        cuml_fm.load_from_treelite_model(model=tl_model, **kwargs)
         return cuml_fm
 
     @common_load_params_docstring

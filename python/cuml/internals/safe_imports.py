@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022-2023, NVIDIA CORPORATION.
+# Copyright (c) 2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,35 +17,35 @@
 
 import importlib
 import traceback
-
-from contextlib import contextmanager
 from cuml.internals.device_support import CPU_ENABLED, GPU_ENABLED
 from cuml.internals import logger
 
 
 class UnavailableError(Exception):
-    """Error thrown if a symbol is unavailable due to an issue importing it"""
+    '''Error thrown if a symbol is unavailable due to an issue importing it'''
+
+
+class UnavailableObject():
+    '''Object to use to always get False in isinstance calls when needed '''
+    pass
 
 
 def return_false(*args, **kwargs):
-    """A placeholder function that always returns False"""
+    '''A placeholder function that always returns False'''
     return False
 
 
-@contextmanager
 def null_decorator(*args, **kwargs):
     if len(kwargs) == 0 and len(args) == 1 and callable(args[0]):
         return args[0]
     else:
-
         def inner(func):
             return func
-
         return inner
 
 
 class UnavailableMeta(type):
-    """A metaclass for generating placeholder objects for unavailable symbols
+    '''A metaclass for generating placeholder objects for unavailable symbols
 
     This metaclass allows errors to be deferred from import time to the time
     that a symbol is actually used in order to streamline the usage of optional
@@ -65,12 +65,12 @@ class UnavailableMeta(type):
     arithmetic) throw an UnavailableError, but this is not guaranteed for
     all possible uses. In such cases, other exception types (typically
     TypeErrors) will be thrown instead.
-    """
+    '''
 
     def __new__(meta, name, bases, dct):
-        if dct.get("_msg", None) is None:
-            dct["_msg"] = f"{name} could not be imported"
-        name = f"MISSING{name}"
+        if dct.get('_msg', None) is None:
+            dct['_msg'] = f'{name} could not be imported'
+        name = f'MISSING{name}'
         return super(UnavailableMeta, meta).__new__(meta, name, bases, dct)
 
     def __call__(cls, *args, **kwargs):
@@ -207,28 +207,29 @@ class UnavailableMeta(type):
 
 
 def is_unavailable(obj):
-    """Helper to check if given symbol is actually a placeholder"""
+    '''Helper to check if given symbol is actually a placeholder'''
     return type(obj) is UnavailableMeta
 
 
 class UnavailableNullContext:
-    """A placeholder class for unavailable context managers
+    '''A placeholder class for unavailable context managers
 
     This context manager will return a value which will throw an
     UnavailableError if used in any way, but the context manager itself can be
     safely invoked.
-    """
+    '''
 
     def __init__(self, *args, **kwargs):
         pass
 
     def __enter__(self):
         return UnavailableMeta(
-            "MissingContextValue",
+            'MissingContextValue',
             (),
             {
-                "_msg": "Attempted to make use of placeholder context return value."
-            },
+                '_msg':
+                'Attempted to make use of placeholder context return value.'
+            }
         )
 
     def __exit__(self, *args, **kwargs):
@@ -236,7 +237,7 @@ class UnavailableNullContext:
 
 
 def safe_import(module, *, msg=None, alt=None):
-    """A function used to import modules that may not be available
+    '''A function used to import modules that may not be available
 
     This function will attempt to import a module with the given name, but it
     will not throw an ImportError if the module is not found. Instead, it will
@@ -258,25 +259,33 @@ def safe_import(module, *, msg=None, alt=None):
     object
         The imported module, the given alternate, or a class derived from
         UnavailableMeta.
-    """
+    '''
     try:
         return importlib.import_module(module)
     except ImportError:
         exception_text = traceback.format_exc()
-        logger.debug(f"Import of {module} failed with: {exception_text}")
+        logger.debug(
+            f'Import of {module} failed with: {exception_text}'
+        )
     except Exception:
         exception_text = traceback.format_exc()
-        logger.info(f"Import of {module} failed with: {exception_text}")
+        logger.info(
+            f'Import of {module} failed with: {exception_text}'
+        )
     if msg is None:
-        msg = f"{module} could not be imported"
+        msg = f'{module} could not be imported'
     if alt is None:
-        return UnavailableMeta(module.rsplit(".")[-1], (), {"_msg": msg})
+        return UnavailableMeta(
+            module.rsplit('.')[-1],
+            (),
+            {'_msg': msg}
+        )
     else:
         return alt
 
 
 def safe_import_from(module, symbol, *, msg=None, alt=None):
-    """A function used to import symbols from modules that may not be available
+    '''A function used to import symbols from modules that may not be available
 
     This function will attempt to import a symbol with the given name from
     the given module, but it will not throw an ImportError if the symbol is not
@@ -301,33 +310,39 @@ def safe_import_from(module, symbol, *, msg=None, alt=None):
     object
         The imported symbol, the given alternate, or a class derived from
         UnavailableMeta.
-    """
+    '''
     try:
         imported_module = importlib.import_module(module)
         return getattr(imported_module, symbol)
     except ImportError:
         exception_text = traceback.format_exc()
-        logger.debug(f"Import of {module} failed with: {exception_text}")
+        logger.debug(
+            f'Import of {module} failed with: {exception_text}'
+        )
     except AttributeError:
         exception_text = traceback.format_exc()
         logger.debug(
-            f"Import of {symbol} from {module} failed with: {exception_text}"
+            f'Import of {symbol} from {module} failed with: {exception_text}'
         )
     except Exception:
         exception_text = traceback.format_exc()
         logger.info(
-            f"Import of {module}.{symbol} failed with: {exception_text}"
+            f'Import of {module}.{symbol} failed with: {exception_text}'
         )
     if msg is None:
-        msg = f"{module}.{symbol} could not be imported"
+        msg = f'{module}.{symbol} could not be imported'
     if alt is None:
-        return UnavailableMeta(symbol, (), {"_msg": msg})
+        return UnavailableMeta(
+            symbol,
+            (),
+            {'_msg': msg}
+        )
     else:
         return alt
 
 
 def gpu_only_import(module, *, alt=None):
-    """A function used to import modules required only in GPU installs
+    '''A function used to import modules required only in GPU installs
 
     This function will attempt to import a module with the given name, but it
     will only throw an ImportError if the attempt fails AND this is not a
@@ -351,19 +366,19 @@ def gpu_only_import(module, *, alt=None):
     object
         The imported module, the given alternate, or a class derived from
         UnavailableMeta.
-    """
+    '''
     if GPU_ENABLED:
         return importlib.import_module(module)
     else:
         return safe_import(
             module,
-            msg=f"{module} is not installed in non GPU-enabled installations",
-            alt=alt,
+            msg=f'{module} is not installed in non GPU-enabled installations',
+            alt=alt
         )
 
 
 def gpu_only_import_from(module, symbol, *, alt=None):
-    """A function used to import symbols required only in GPU installs
+    '''A function used to import symbols required only in GPU installs
 
     This function will attempt to import a symbol from a module with the given
     names, but it will only throw an ImportError if the attempt fails AND this
@@ -389,7 +404,7 @@ def gpu_only_import_from(module, symbol, *, alt=None):
     object
         The imported symbol, the given alternate, or a class derived from
         UnavailableMeta.
-    """
+    '''
     if GPU_ENABLED:
         imported_module = importlib.import_module(module)
         return getattr(imported_module, symbol)
@@ -397,14 +412,14 @@ def gpu_only_import_from(module, symbol, *, alt=None):
         return safe_import_from(
             module,
             symbol,
-            msg=f"{module}.{symbol} is not available in CPU-only"
-            " installations",
-            alt=alt,
+            msg=f'{module}.{symbol} is not available in CPU-only'
+            ' installations',
+            alt=alt
         )
 
 
 def cpu_only_import(module, *, alt=None):
-    """A function used to import modules required only in CPU installs
+    '''A function used to import modules required only in CPU installs
 
     This function will attempt to import a module with the given name, but it
     will only throw an ImportError if the attempt fails AND this is not a
@@ -428,19 +443,19 @@ def cpu_only_import(module, *, alt=None):
     object
         The imported module, the given alternate, or a class derived from
         UnavailableMeta.
-    """
+    '''
     if CPU_ENABLED:
         return importlib.import_module(module)
     else:
         return safe_import(
             module,
-            msg=f"{module} is not installed in GPU-only installations",
-            alt=alt,
+            msg=f'{module} is not installed in GPU-only installations',
+            alt=alt
         )
 
 
 def cpu_only_import_from(module, symbol, *, alt=None):
-    """A function used to import symbols required only in CPU installs
+    '''A function used to import symbols required only in CPU installs
 
     This function will attempt to import a symbol from a module with the given
     names, but it will only throw an ImportError if the attempt fails AND this
@@ -466,7 +481,7 @@ def cpu_only_import_from(module, symbol, *, alt=None):
     object
         The imported symbol, the given alternate, or a class derived from
         UnavailableMeta.
-    """
+    '''
     if CPU_ENABLED:
         imported_module = importlib.import_module(module)
         return getattr(imported_module, symbol)
@@ -474,7 +489,7 @@ def cpu_only_import_from(module, symbol, *, alt=None):
         return safe_import_from(
             module,
             symbol,
-            msg=f"{module}.{symbol} is not available in GPU-only"
-            " installations",
-            alt=alt,
+            msg=f'{module}.{symbol} is not available in GPU-only'
+            ' installations',
+            alt=alt
         )

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2023, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ cp = gpu_only_import('cupy')
 from libc.stdint cimport uintptr_t
 
 import cuml.internals
+from cuml.internals.array import CumlArray
 from pylibraft.common.handle import Handle
 from pylibraft.common.handle cimport handle_t
 from cuml.metrics cimport regression
@@ -31,7 +32,7 @@ from cuml.internals.input_utils import input_to_cuml_array
 
 
 @cuml.internals.api_return_any()
-def r2_score(y, y_hat, convert_dtype=True, handle=None) -> float:
+def r2_score(y, y_hat, convert_dtype=True, handle=None) -> double:
     """
     Calculates r2 score between y and y_hat
 
@@ -107,7 +108,7 @@ def _prepare_input_reg(y_true, y_pred, sample_weight, multioutput):
     """
     allowed_d_types = [np.float32, np.float64, np.int32, np.int64]
     y_true = y_true.squeeze() if len(y_true.shape) > 1 else y_true
-    y_true, n_rows, n_cols, _ = \
+    y_true, n_rows, n_cols, ytype = \
         input_to_cuml_array(y_true, check_dtype=allowed_d_types)
 
     y_pred = y_pred.squeeze() if len(y_pred.shape) > 1 else y_pred

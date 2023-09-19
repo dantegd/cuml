@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021-2023, NVIDIA CORPORATION.
+# Copyright (c) 2021-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,9 @@ cp = gpu_only_import('cupy')
 from cuml.internals.safe_imports import cpu_only_import
 np = cpu_only_import('numpy')
 import cuml.internals
-from cuml.common import input_to_cuml_array
+from cuml.internals.input_utils import determine_array_type
+from cuml.common import (input_to_cuml_array, CumlArray)
+from cuml.internals import logger
 from libc.stdint cimport uintptr_t
 from pylibraft.common.handle cimport handle_t
 from pylibraft.common.handle import Handle
@@ -43,8 +45,8 @@ def kl_divergence(P, Q, handle=None, convert_dtype=True):
     Calculates the "Kullback-Leibler" Divergence
     The KL divergence tells us how well the probability distribution Q
     approximates the probability distribution P
-    It is often also used as a 'distance metric' between two probability
-    distributions (not symmetric)
+    It is often also used as a 'distance metric' between two probablity
+    ditributions (not symmetric)
 
     Parameters
     ----------

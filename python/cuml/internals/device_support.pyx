@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023, NVIDIA CORPORATION.
+# Copyright (c) 2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-cdef extern from "cuml/experimental/fil/detail/raft_proto/cuda_stream.hpp" namespace "raft_proto" nogil:
-    cdef cppclass cuda_stream:
-        pass
+
+
+IF GPUBUILD == 1:
+    GPU_ENABLED = True
+
+ELSE:
+    GPU_ENABLED = False
+
+try:
+    import sklearn  # noqa: F401
+    CPU_ENABLED = True
+except ImportError:
+    CPU_ENABLED = False

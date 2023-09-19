@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020-2023, NVIDIA CORPORATION.
+# Copyright (c) 2020-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+import cuml
 from cuml.internals.safe_imports import gpu_only_import
 cp = gpu_only_import('cupy')
 from cuml.internals.safe_imports import cpu_only_import
@@ -22,8 +23,12 @@ import time
 
 from cuml.internals.safe_imports import gpu_only_import_from
 cu_df = gpu_only_import_from('cudf', 'DataFrame')
+from cuml.internals.array import CumlArray
+from cuml.internals.input_utils import input_to_cupy_array
 from cuml.explainer.base import SHAPBase
 from cuml.explainer.common import get_cai_ptr
+from cuml.explainer.common import get_dtype_from_model_func
+from cuml.explainer.common import get_tag_from_model_func
 from cuml.explainer.common import model_func_call
 cuda = gpu_only_import_from('numba', 'cuda')
 from cuml.internals.safe_imports import cpu_only_import_from
@@ -148,7 +153,7 @@ class PermutationExplainer(SHAPBase):
     dtype : np.float32 or np.float64 (default = None)
         Parameter to specify the precision of data to generate to call the
         model. If not specified, the explainer will try to get the dtype
-        of the model, if it cannot be queried, then it will default to
+        of the model, if it cannot be queried, then it will defaul to
         np.float32.
     output_type : 'cupy' or 'numpy' (default = 'numpy')
         Parameter to specify the type of data to output.

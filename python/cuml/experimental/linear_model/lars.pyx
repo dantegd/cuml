@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020-2023, NVIDIA CORPORATION.
+# Copyright (c) 2020-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,14 +19,18 @@
 # cython: embedsignature = True
 # cython: language_level = 3
 
+import ctypes
 from cuml.internals.safe_imports import cpu_only_import
 np = cpu_only_import('numpy')
 from cuml.internals.safe_imports import gpu_only_import
 cp = gpu_only_import('cupy')
+import warnings
 import cuml.internals.logger as logger
 import cuml.internals
 
-from libcpp cimport nullptr
+from collections import defaultdict
+
+from libcpp cimport bool, nullptr
 from libc.stdint cimport uintptr_t
 
 from cuml.common import input_to_cuml_array
@@ -35,6 +39,7 @@ from cuml.common.array_descriptor import CumlArrayDescriptor
 from cuml.internals.base import Base
 from cuml.internals.mixins import RegressorMixin
 from cuml.common.doc_utils import generate_docstring
+from cuml.common.exceptions import NotFittedError
 from pylibraft.common.handle cimport handle_t
 
 cdef extern from "cuml/solvers/lars.hpp" namespace "ML::Solver::Lars":
@@ -217,7 +222,7 @@ class Lars(Base, RegressorMixin):
                 Gram = cp.dot(X.T, X)
             except MemoryError as err:
                 if self.precompute:
-                    logger.debug("Not enough memory to store the Gram matrix."
+                    logger.debug("Not enought memory to store the Gram matrix."
                                  " Proceeding without it.")
         return Gram
 
@@ -355,7 +360,7 @@ class Lars(Base, RegressorMixin):
 
         """
         conv_dtype=(self.dtype if convert_dtype else None)
-        X_m, n_rows, _n_cols, _dtype = input_to_cuml_array(
+        X_m, n_rows, n_cols, dtype = input_to_cuml_array(
             X, check_dtype=self.dtype, convert_to_dtype=conv_dtype,
             check_cols=self.n_cols, order='F')
 

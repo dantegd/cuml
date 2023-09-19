@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2023, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,30 +18,23 @@
 
 import os
 import inspect
-import numbers
 from importlib import import_module
-from cuml.internals.safe_imports import (
-    cpu_only_import,
-    gpu_only_import_from,
-    null_decorator
-)
+from cuml.internals.safe_imports import cpu_only_import
 np = cpu_only_import('numpy')
-nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
+import nvtx
+import typing
 
 import cuml
 import cuml.common
-import cuml.common.cuda
 import cuml.internals.logger as logger
 import cuml.internals
-import pylibraft.common.handle
 import cuml.internals.input_utils
 from cuml.internals.available_devices import is_cuda_available
 from cuml.internals.device_type import DeviceType
 from cuml.internals.input_utils import (
     determine_array_type,
     input_to_cuml_array,
-    input_to_host_array,
-    is_array_like
+    input_to_host_array
 )
 from cuml.internals.memory_utils import determine_array_memtype
 from cuml.internals.mem_type import MemoryType
@@ -51,14 +44,20 @@ from cuml.internals.output_type import (
     VALID_OUTPUT_TYPES
 )
 from cuml.internals.array import CumlArray
+from cuml.internals.array_sparse import SparseCumlArray
 from cuml.internals.safe_imports import (
     gpu_only_import, gpu_only_import_from
 )
 
+from cuml.common.doc_utils import generate_docstring
 from cuml.internals.mixins import TagsMixin
 
 cp_ndarray = gpu_only_import_from('cupy', 'ndarray')
 cp = gpu_only_import('cupy')
+
+IF GPUBUILD == 1:
+    import pylibraft.common.handle
+    import cuml.common.cuda
 
 
 class Base(TagsMixin,
@@ -201,17 +200,23 @@ class Base(TagsMixin,
         Constructor. All children must call init method of this base class.
 
         """
-        self.handle = pylibraft.common.handle.Handle() if handle is None \
-            else handle
-
-        # Internally, self.verbose follows the spdlog/c++ standard of
-        # 0 is most logging, and logging decreases from there.
-        # So if the user passes an int value for logging, we convert it.
-        if verbose is True:
-            self.verbose = logger.level_debug
-        elif verbose is False:
-            self.verbose = logger.level_info
+        if GPUBUILD == 1:
+            self.handle = pylibraft.common.handle.Handle() if handle is None \
+                else handle
         else:
+            self.handle = None
+
+        IF GPUBUILD == 1:
+            # Internally, self.verbose follows the spdlog/c++ standard of
+            # 0 is most logging, and logging decreases from there.
+            # So if the user passes an int value for logging, we convert it.
+            if verbose is True:
+                self.verbose = logger.level_debug
+            elif verbose is False:
+                self.verbose = logger.level_info
+            else:
+                self.verbose = verbose
+        ELSE:
             self.verbose = verbose
 
         self.output_type = _check_output_type_str(
@@ -424,7 +429,7 @@ class Base(TagsMixin,
             self.n_features_in_ = X.shape[1]
 
     def _more_tags(self):
-        # 'preserves_dtype' tag's Scikit definition currently only applies to
+        # 'preserves_dtype' tag's Scikit definition currently only appies to
         # transformers and whether the transform method conserves the dtype
         # (in that case returns an empty list, otherwise the dtype it
         # casts to).
@@ -438,13 +443,14 @@ class Base(TagsMixin,
         for func_name in ['fit', 'transform', 'predict', 'fit_transform',
                           'fit_predict']:
             if hasattr(self, func_name):
+                message = self.__class__.__module__ + '.' + func_name
                 msg = '{class_name}.{func_name} [{addr}]'
                 msg = msg.format(class_name=self.__class__.__module__,
                                  func_name=func_name,
                                  addr=hex(id(self)))
                 msg = msg[5:]  # remove cuml.
                 func = getattr(self, func_name)
-                func = nvtx_annotate(message=msg, domain="cuml_python")(func)
+                func = nvtx.annotate(message=msg, domain="cuml_python")(func)
                 setattr(self, func_name, func)
 
 
@@ -628,14 +634,7 @@ class UniversalBase(Base):
         # put all the kwargs on host
         new_kwargs = dict()
         for kw, arg in kwargs.items():
-            # if array-like, ensure array-like is on the host
-            if is_array_like(arg):
-                new_kwargs[kw] = input_to_host_array(arg)[0]
-            # if Real or string, pass as is
-            elif isinstance(arg, (numbers.Real, str)):
-                new_kwargs[kw] = arg
-            else:
-                raise ValueError(f"Unable to process argument {kw}")
+            new_kwargs[kw] = input_to_host_array(arg)[0]
         return new_args, new_kwargs
 
     def dispatch_func(self, func_name, gpu_func, *args, **kwargs):

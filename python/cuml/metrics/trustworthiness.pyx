@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2023, NVIDIA CORPORATION.
+# Copyright (c) 2018-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 from cuml.internals.safe_imports import cpu_only_import
 np = cpu_only_import('numpy')
+import warnings
 
 from cuml.internals.safe_imports import gpu_only_import_from
 cuda = gpu_only_import_from('numba', 'cuda')
@@ -28,7 +29,7 @@ from cuml.internals.input_utils import input_to_cuml_array
 from pylibraft.common.handle import Handle
 from pylibraft.common.handle cimport handle_t
 
-cdef extern from "raft/distance/distance_types.hpp" namespace "raft::distance":
+cdef extern from "raft/distance/distance_type.hpp" namespace "raft::distance":
 
     ctypedef int DistanceType
     ctypedef DistanceType euclidean "(raft::distance::DistanceType)5"
@@ -55,7 +56,7 @@ def _get_array_ptr(obj):
 @cuml.internals.api_return_any()
 def trustworthiness(X, X_embedded, handle=None, n_neighbors=5,
                     metric='euclidean',
-                    convert_dtype=True, batch_size=512) -> float:
+                    convert_dtype=True, batch_size=512) -> double:
     """
     Expresses to what extent the local structure is retained in embedding.
     The score is defined in the range [0, 1].
@@ -101,13 +102,13 @@ def trustworthiness(X, X_embedded, handle=None, n_neighbors=5,
     cdef uintptr_t d_X_ptr
     cdef uintptr_t d_X_embedded_ptr
 
-    X_m, n_samples, n_features, _ = \
+    X_m, n_samples, n_features, dtype1 = \
         input_to_cuml_array(X, order='C', check_dtype=np.float32,
                             convert_to_dtype=(np.float32 if convert_dtype
                                               else None))
     d_X_ptr = X_m.ptr
 
-    X_m2, _, n_components, _ = \
+    X_m2, n_rows, n_components, dtype2 = \
         input_to_cuml_array(X_embedded, order='C',
                             check_dtype=np.float32,
                             convert_to_dtype=(np.float32 if convert_dtype

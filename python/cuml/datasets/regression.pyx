@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2023, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,13 +17,9 @@
 # distutils: language = c++
 
 import typing
-from cuml.internals.safe_imports import (
-    cpu_only_import,
-    gpu_only_import_from,
-    null_decorator
-)
-nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
+import nvtx
 
+from cuml.internals.safe_imports import cpu_only_import
 np = cpu_only_import('numpy')
 
 import cuml.internals
@@ -78,7 +74,7 @@ inp_to_dtype = {
 }
 
 
-@nvtx_annotate(message="datasets.make_regression", domain="cuml_python")
+@nvtx.annotate(message="datasets.make_regression", domain="cuml_python")
 @cuml.internals.api_return_generic()
 def make_regression(
     n_samples=100,

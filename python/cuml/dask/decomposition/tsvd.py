@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2023, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,12 +21,10 @@ from cuml.dask.common.base import DelayedTransformMixin
 from cuml.dask.common.base import DelayedInverseTransformMixin
 
 
-class TruncatedSVD(
-    BaseDecomposition,
-    DelayedTransformMixin,
-    DelayedInverseTransformMixin,
-    DecompositionSyncFitMixin,
-):
+class TruncatedSVD(BaseDecomposition,
+                   DelayedTransformMixin,
+                   DelayedInverseTransformMixin,
+                   DecompositionSyncFitMixin):
     """
     Examples
     --------
@@ -106,9 +104,9 @@ class TruncatedSVD(
         """
         Constructor for distributed TruncatedSVD model
         """
-        super().__init__(
-            model_func=TruncatedSVD._create_tsvd, client=client, **kwargs
-        )
+        super().__init__(model_func=TruncatedSVD._create_tsvd,
+                         client=client,
+                         **kwargs)
 
     def fit(self, X, _transform=False):
         """
@@ -158,7 +156,9 @@ class TruncatedSVD(
         X_new : dask cuDF
 
         """
-        return self._transform(X, n_dims=2, delayed=delayed)
+        return self._transform(X,
+                               n_dims=2,
+                               delayed=delayed)
 
     def inverse_transform(self, X, delayed=True):
         """
@@ -175,7 +175,9 @@ class TruncatedSVD(
         X_original : dask cuDF
 
         """
-        return self._inverse_transform(X, n_dims=2, delayed=delayed)
+        return self._inverse_transform(X,
+                                       n_dims=2,
+                                       delayed=delayed)
 
     def get_param_names(self):
         return list(self.kwargs.keys())
@@ -184,5 +186,4 @@ class TruncatedSVD(
     @mnmg_import
     def _create_tsvd(handle, datatype, **kwargs):
         from cuml.decomposition.tsvd_mg import TSVDMG as cumlTSVD
-
         return cumlTSVD(handle=handle, output_type=datatype, **kwargs)

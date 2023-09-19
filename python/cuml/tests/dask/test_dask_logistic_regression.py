@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2023, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,16 +16,15 @@
 from cuml.internals.safe_imports import gpu_only_import
 import pytest
 from cuml.dask.common import utils as dask_utils
-from sklearn.metrics import accuracy_score, mean_squared_error
+from sklearn.metrics import accuracy_score
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression as skLR
 from cuml.internals.safe_imports import cpu_only_import
-
-pd = cpu_only_import("pandas")
-np = cpu_only_import("numpy")
-cp = gpu_only_import("cupy")
-dask_cudf = gpu_only_import("dask_cudf")
-cudf = gpu_only_import("cudf")
+pd = cpu_only_import('pandas')
+np = cpu_only_import('numpy')
+cp = gpu_only_import('cupy')
+dask_cudf = gpu_only_import('dask_cudf')
+cudf = gpu_only_import('cudf')
 
 pytestmark = pytest.mark.mg
 
@@ -58,12 +57,12 @@ def make_classification_dataset(datatype, nrows, ncols, n_info):
 
 
 def select_sk_solver(cuml_solver):
-    if cuml_solver == "newton":
-        return "newton-cg"
-    elif cuml_solver in ["admm", "lbfgs"]:
-        return "lbfgs"
+    if cuml_solver == 'newton':
+        return 'newton-cg'
+    elif cuml_solver in ['admm', 'lbfgs']:
+        return 'lbfgs'
     else:
-        pytest.xfail("No matched sklearn solver")
+        pytest.xfail('No matched sklearn solver')
 
 
 @pytest.mark.mg
@@ -73,18 +72,11 @@ def select_sk_solver(cuml_solver):
 @pytest.mark.parametrize("fit_intercept", [False, True])
 @pytest.mark.parametrize("datatype", [np.float32, np.float64])
 @pytest.mark.parametrize("gpu_array_input", [False, True])
-@pytest.mark.parametrize(
-    "solver", ["admm", "gradient_descent", "newton", "lbfgs", "proximal_grad"]
-)
+@pytest.mark.parametrize("solver", ['admm', 'gradient_descent', 'newton',
+                                    'lbfgs', 'proximal_grad'])
 def test_lr_fit_predict_score(
-    nrows,
-    ncols,
-    n_parts,
-    fit_intercept,
-    datatype,
-    gpu_array_input,
-    solver,
-    client,
+    nrows, ncols, n_parts, fit_intercept, datatype, gpu_array_input, solver,
+    client
 ):
     sk_solver = select_sk_solver(cuml_solver=solver)
 
@@ -93,13 +85,12 @@ def test_lr_fit_predict_score(
 
     client.run(imp)
 
-    from cuml.dask.extended.linear_model import (
-        LogisticRegression as cumlLR_dask,
-    )
+    from cuml.dask.extended.linear_model import LogisticRegression \
+        as cumlLR_dask
 
     n_info = 5
-    nrows = int(nrows)
-    ncols = int(ncols)
+    nrows = np.int(nrows)
+    ncols = np.int(ncols)
     X, y = make_classification_dataset(datatype, nrows, ncols, n_info)
 
     gX, gy = _prep_training_data(client, X, y, n_parts)
@@ -110,9 +101,9 @@ def test_lr_fit_predict_score(
         gy = gy.values
         gy._meta = cp.asarray(gy._meta)
 
-    cuml_model = cumlLR_dask(
-        fit_intercept=fit_intercept, solver=solver, max_iter=10
-    )
+    cuml_model = cumlLR_dask(fit_intercept=fit_intercept,
+                             solver=solver,
+                             max_iter=10)
 
     # test fit and predict
     cuml_model.fit(gX, gy)
@@ -124,184 +115,18 @@ def test_lr_fit_predict_score(
     sk_preds = sk_model.predict(X)
     accuracy_sk = accuracy_score(y, sk_preds)
 
-    assert (accuracy_cuml >= accuracy_sk) | (
-        np.abs(accuracy_cuml - accuracy_sk) < 1e-3
-    )
+    assert (accuracy_cuml >= accuracy_sk) | \
+        (np.abs(accuracy_cuml - accuracy_sk) < 1e-3)
 
     # score
     accuracy_cuml = cuml_model.score(gX, gy).compute().item()
     accuracy_sk = sk_model.score(X, y)
 
-    assert (accuracy_cuml >= accuracy_sk) | (
-        np.abs(accuracy_cuml - accuracy_sk) < 1e-3
-    )
+    assert (accuracy_cuml >= accuracy_sk) | \
+        (np.abs(accuracy_cuml - accuracy_sk) < 1e-3)
 
     # predicted probabilities should differ by <= 5%
     # even with different solvers (arbitrary)
     probs_cuml = cuml_model.predict_proba(gX).compute()
     probs_sk = sk_model.predict_proba(X)[:, 1]
     assert np.abs(probs_sk - probs_cuml.get()).max() <= 0.05
-
-
-@pytest.mark.mg
-@pytest.mark.parametrize("n_parts", [2])
-@pytest.mark.parametrize("datatype", [np.float32])
-def test_lbfgs_toy(n_parts, datatype, client):
-    def imp():
-        import cuml.comm.serialize  # NOQA
-
-    client.run(imp)
-
-    X = np.array([(1, 2), (1, 3), (2, 1), (3, 1)], datatype)
-    y = np.array([1.0, 1.0, 0.0, 0.0], datatype)
-
-    from cuml.dask.linear_model import LogisticRegression as cumlLBFGS_dask
-
-    X_df, y_df = _prep_training_data(client, X, y, n_parts)
-
-    lr = cumlLBFGS_dask()
-
-    lr.fit(X_df, y_df)
-
-    lr_coef = lr.coef_.to_numpy()
-    lr_intercept = lr.intercept_.to_numpy()
-
-    assert len(lr_coef) == 1
-    assert lr_coef[0] == pytest.approx([-0.71483153, 0.7148315], abs=1e-6)
-    assert lr_intercept == pytest.approx([-2.2614916e-08], abs=1e-6)
-
-    # test predict
-    preds = lr.predict(X_df, delayed=True).compute().to_numpy()
-    from numpy.testing import assert_array_equal
-
-    assert_array_equal(preds, y, strict=True)
-
-
-def test_lbfgs_init(client):
-    def imp():
-        import cuml.comm.serialize  # NOQA
-
-    client.run(imp)
-
-    X = np.array([(1, 2), (1, 3), (2, 1), (3, 1)], dtype=np.float32)
-    y = np.array([1.0, 1.0, 0.0, 0.0], dtype=np.float32)
-
-    X_df, y_df = _prep_training_data(
-        c=client, X_train=X, y_train=y, partitions_per_worker=2
-    )
-
-    from cuml.dask.linear_model.logistic_regression import (
-        LogisticRegression as cumlLBFGS_dask,
-    )
-
-    def assert_params(
-        tol,
-        C,
-        fit_intercept,
-        max_iter,
-        linesearch_max_iter,
-        verbose,
-        output_type,
-    ):
-
-        lr = cumlLBFGS_dask(
-            tol=tol,
-            C=C,
-            fit_intercept=fit_intercept,
-            max_iter=max_iter,
-            linesearch_max_iter=linesearch_max_iter,
-            verbose=verbose,
-            output_type=output_type,
-        )
-
-        lr.fit(X_df, y_df)
-        qnpams = lr.qnparams.params
-        assert qnpams["grad_tol"] == tol
-        assert qnpams["loss"] == 0  # "sigmoid" loss
-        assert qnpams["penalty_l1"] == 0.0
-        assert qnpams["penalty_l2"] == 1.0 / C
-        assert qnpams["fit_intercept"] == fit_intercept
-        assert qnpams["max_iter"] == max_iter
-        assert qnpams["linesearch_max_iter"] == linesearch_max_iter
-        assert (
-            qnpams["verbose"] == 5 if verbose is True else 4
-        )  # cuml Verbosity Levels
-        assert (
-            lr.output_type == "input" if output_type is None else output_type
-        )  # cuml.global_settings.output_type
-
-    assert_params(
-        tol=1e-4,
-        C=1.0,
-        fit_intercept=True,
-        max_iter=1000,
-        linesearch_max_iter=50,
-        verbose=False,
-        output_type=None,
-    )
-
-    assert_params(
-        tol=1e-6,
-        C=1.5,
-        fit_intercept=False,
-        max_iter=200,
-        linesearch_max_iter=100,
-        verbose=True,
-        output_type="cudf",
-    )
-
-
-@pytest.mark.mg
-@pytest.mark.parametrize("nrows", [1e5])
-@pytest.mark.parametrize("ncols", [20])
-@pytest.mark.parametrize("n_parts", [2, 23])
-@pytest.mark.parametrize("fit_intercept", [False, True])
-@pytest.mark.parametrize("datatype", [np.float32])
-@pytest.mark.parametrize("delayed", [True, False])
-def test_lbfgs(
-    nrows, ncols, n_parts, fit_intercept, datatype, delayed, client
-):
-    tolerance = 0.005
-
-    def imp():
-        import cuml.comm.serialize  # NOQA
-
-    client.run(imp)
-
-    from cuml.dask.linear_model.logistic_regression import (
-        LogisticRegression as cumlLBFGS_dask,
-    )
-
-    # set n_informative variable for calling sklearn.datasets.make_classification
-    n_info = 5
-    nrows = int(nrows)
-    ncols = int(ncols)
-    X, y = make_classification_dataset(datatype, nrows, ncols, n_info)
-
-    X_df, y_df = _prep_training_data(client, X, y, n_parts)
-
-    lr = cumlLBFGS_dask(fit_intercept=fit_intercept)
-    lr.fit(X_df, y_df)
-    lr_coef = lr.coef_.to_numpy()
-    lr_intercept = lr.intercept_.to_numpy()
-
-    sk_model = skLR(fit_intercept=fit_intercept)
-    sk_model.fit(X, y)
-    sk_coef = sk_model.coef_
-    sk_intercept = sk_model.intercept_
-
-    assert len(lr_coef) == len(sk_coef)
-    for i in range(len(lr_coef)):
-        assert lr_coef[i] == pytest.approx(sk_coef[i], abs=tolerance)
-    assert lr_intercept == pytest.approx(sk_intercept, abs=tolerance)
-
-    # test predict
-    cu_preds = lr.predict(X_df, delayed=delayed)
-    accuracy_cuml = accuracy_score(y, cu_preds.compute().to_numpy())
-
-    sk_preds = sk_model.predict(X)
-    accuracy_sk = accuracy_score(y, sk_preds)
-
-    assert (accuracy_cuml >= accuracy_sk) | (
-        np.abs(accuracy_cuml - accuracy_sk) < 1e-3
-    )

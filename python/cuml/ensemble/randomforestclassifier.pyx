@@ -1,6 +1,6 @@
 
 #
-# Copyright (c) 2019-2023, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,22 +16,20 @@
 #
 
 # distutils: language = c++
-from cuml.internals.safe_imports import (
-    cpu_only_import,
-    gpu_only_import,
-    gpu_only_import_from,
-    null_decorator
-)
-
+from cuml.internals.safe_imports import cpu_only_import
 np = cpu_only_import('numpy')
-nvtx_annotate = gpu_only_import_from("nvtx", "annotate", alt=null_decorator)
+import nvtx
+from cuml.internals.safe_imports import gpu_only_import
 rmm = gpu_only_import('rmm')
+import warnings
 
+from cuml import ForestInference
 from cuml.internals.array import CumlArray
 from cuml.internals.mixins import ClassifierMixin
 import cuml.internals
 from cuml.common.doc_utils import generate_docstring
 from cuml.common.doc_utils import insert_into_docstring
+from pylibraft.common.handle import Handle
 from cuml.common import input_to_cuml_array
 
 from cuml.ensemble.randomforest_common import BaseRandomForestModel
@@ -40,8 +38,12 @@ from cuml.ensemble.randomforest_shared cimport *
 
 from cuml.fil.fil import TreeliteModel
 
+from cython.operator cimport dereference as deref
+
 from libcpp cimport bool
+from libcpp.vector cimport vector
 from libc.stdint cimport uintptr_t, uint64_t
+from libc.stdlib cimport calloc, malloc, free
 
 from cuml.internals.safe_imports import gpu_only_import_from
 cuda = gpu_only_import_from('numba', 'cuda')
@@ -49,6 +51,8 @@ from cuml.prims.label.classlabels import check_labels, invert_labels
 
 from pylibraft.common.handle cimport handle_t
 cimport cuml.common.cuda
+
+cimport cython
 
 
 cdef extern from "cuml/ensemble/randomforest.hpp" namespace "ML":
@@ -202,8 +206,8 @@ class RandomForestClassifier(BaseRandomForestModel,
            and ``max(2, ceil(min_samples_split * n_rows))`` is the minimum
            number of samples for each split.
     min_impurity_decrease : float (default = 0.0)
-        Minimum decrease in impurity required for
-        node to be split.
+        Minimum decrease in impurity requried for
+        node to be spilt.
     max_batch_size : int (default = 4096)
         Maximum number of nodes that can be processed in a given batch.
     random_state : int (default = None)
@@ -256,10 +260,13 @@ class RandomForestClassifier(BaseRandomForestModel,
             output_type=output_type,
             **kwargs)
 
-    # TODO: Add the preprocess and postprocess functions in the cython code to
-    # normalize the labels
-    # Link to the above issue on github:
-    # https://github.com/rapidsai/cuml/issues/691
+    """
+    TODO:
+        Add the preprocess and postprocess functions
+        in the cython code to normalize the labels
+        Link to the above issue on github :
+        https://github.com/rapidsai/cuml/issues/691
+    """
     def __getstate__(self):
         state = self.__dict__.copy()
         cdef size_t params_t
@@ -404,7 +411,7 @@ class RandomForestClassifier(BaseRandomForestModel,
                                  algo=algo,
                                  fil_sparse_format=fil_sparse_format)
 
-    @nvtx_annotate(
+    @nvtx.annotate(
         message="fit RF-Classifier @randomforestclassifier.pyx",
         domain="cuml_python")
     @generate_docstring(skip_parameters_heading=True,
@@ -501,7 +508,7 @@ class RandomForestClassifier(BaseRandomForestModel,
     @cuml.internals.api_base_return_array(get_output_dtype=True)
     def _predict_model_on_cpu(self, X, convert_dtype) -> CumlArray:
         cdef uintptr_t X_ptr
-        X_m, n_rows, n_cols, _dtype = \
+        X_m, n_rows, n_cols, dtype = \
             input_to_cuml_array(X, order='C',
                                 convert_to_dtype=(self.dtype if convert_dtype
                                                   else None),
@@ -542,10 +549,10 @@ class RandomForestClassifier(BaseRandomForestModel,
 
         self.handle.sync()
         # synchronous w/o a stream
-        del X_m
+        del(X_m)
         return preds
 
-    @nvtx_annotate(
+    @nvtx.annotate(
         message="predict RF-Classifier @randomforestclassifier.pyx",
         domain="cuml_python")
     @insert_into_docstring(parameters=[('dense', '(n_samples, n_features)')],
@@ -620,7 +627,7 @@ class RandomForestClassifier(BaseRandomForestModel,
                       convert_dtype=True,
                       fil_sparse_format='auto') -> CumlArray:
         """
-        Predicts class probabilities for X. This function uses the GPU
+        Predicts class probabilites for X. This function uses the GPU
         implementation of predict.
 
         Parameters
@@ -667,7 +674,7 @@ class RandomForestClassifier(BaseRandomForestModel,
 
         return preds_proba
 
-    @nvtx_annotate(
+    @nvtx.annotate(
         message="score RF-Classifier @randomforestclassifier.pyx",
         domain="cuml_python")
     @insert_into_docstring(parameters=[('dense', '(n_samples, n_features)'),
@@ -724,13 +731,13 @@ class RandomForestClassifier(BaseRandomForestModel,
            Accuracy of the model [0.0 - 1.0]
         """
 
-        cdef uintptr_t y_ptr
+        cdef uintptr_t X_ptr, y_ptr
         _, n_rows, _, _ = \
             input_to_cuml_array(X, check_dtype=self.dtype,
                                 convert_to_dtype=(self.dtype if convert_dtype
                                                   else None),
                                 check_cols=self.n_cols)
-        y_m, n_rows, _, _ = \
+        y_m, n_rows, _, y_dtype = \
             input_to_cuml_array(y, check_dtype=np.int32,
                                 convert_to_dtype=(np.int32 if convert_dtype
                                                   else False))
@@ -775,8 +782,8 @@ class RandomForestClassifier(BaseRandomForestModel,
                             % (str(self.dtype)))
 
         self.handle.sync()
-        del y_m
-        del preds_m
+        del(y_m)
+        del(preds_m)
         return self.stats['accuracy']
 
     def get_summary_text(self):
