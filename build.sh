@@ -11,6 +11,7 @@
 # Abort script on first error
 set -e
 
+echo $@
 NUMARGS=$#
 ARGS=$*
 
