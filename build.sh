@@ -232,6 +232,7 @@ fi
 ################################################################################
 # Configure for building all C++ targets
 if completeBuild || hasArg libcuml || hasArg prims || hasArg bench || hasArg prims-bench || hasArg cppdocs || hasArg cpp-mgtests; then
+    echo "111111111"
     if (( ${BUILD_ALL_GPU_ARCH} == 0 )); then
         CUML_CMAKE_CUDA_ARCHITECTURES="NATIVE"
         echo "Building for the architecture of the GPU in the system..."
@@ -264,6 +265,7 @@ fi
 
 # If `./build.sh cuml` is called, don't build C/C++ components
 if (! hasArg --configure-only) && (completeBuild || hasArg libcuml || hasArg prims || hasArg bench || hasArg cpp-mgtests); then
+    echo "2222222222"
     cd ${LIBCUML_BUILD_DIR}
     if [ -n "${INSTALL_TARGET}" ]; then
       cmake --build ${LIBCUML_BUILD_DIR} -j${PARALLEL_LEVEL} ${build_args} --target ${INSTALL_TARGET} ${VERBOSE_FLAG}
@@ -273,6 +275,7 @@ if (! hasArg --configure-only) && (completeBuild || hasArg libcuml || hasArg pri
 fi
 
 if (! hasArg --configure-only) && hasArg cppdocs; then
+    echo "33333333333"
     cd ${LIBCUML_BUILD_DIR}
     cmake --build ${LIBCUML_BUILD_DIR} --target docs_cuml
 fi
@@ -281,6 +284,7 @@ fi
 # Build and (optionally) install the cuml Python package
 if (! hasArg --configure-only) && (completeBuild || hasArg cuml || hasArg pydocs); then
     # Append `-DFIND_CUML_CPP=ON` to CUML_EXTRA_CMAKE_ARGS unless a user specified the option.
+    echo "444444444444444"
     SKBUILD_EXTRA_CMAKE_ARGS="${CUML_EXTRA_CMAKE_ARGS}"
     if [[ "${CUML_EXTRA_CMAKE_ARGS}" != *"DFIND_CUML_CPP"* ]]; then
         SKBUILD_EXTRA_CMAKE_ARGS="${SKBUILD_EXTRA_CMAKE_ARGS} -DFIND_CUML_CPP=ON"
@@ -297,7 +301,9 @@ if (! hasArg --configure-only) && (completeBuild || hasArg cuml || hasArg pydocs
 fi
 
 if hasArg cuml-cpu; then
-    SKBUILD_CONFIGURE_OPTIONS="${CUML_EXTRA_CMAKE_ARGS} -DCUML_CPU=ON -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE" \
+    echo "5555555555"
+    SKBUILD_CONFIGURE_OPTIONS="-DCUML_CPU=ON -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE" \
         SKBUILD_BUILD_OPTIONS="-j${PARALLEL_LEVEL}" \
         python -m pip install --no-build-isolation --no-deps -v ${REPODIR}/python
 fi
+
