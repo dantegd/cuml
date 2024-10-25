@@ -44,6 +44,7 @@ class _GlobalSettingsData(threading.local):  # pylint: disable=R0903
                 "_device_type": default_device_type,
                 "_memory_type": default_memory_type,
                 "root_cm": None,
+                "internal_counter": 0
             }
         else:
             self.shared_state = {"_output_type": None, "root_cm": None}
@@ -126,3 +127,13 @@ class GlobalSettings:
     @property
     def xpy(self):
         return self.memory_type.xpy
+
+    def increase_arc(self):
+        self.internal_counter += 1
+
+    def decrease_arc(self):
+        self.internal_counter -= 1
+
+    @property
+    def is_internal(self):
+        return self.internal_counter > 0
