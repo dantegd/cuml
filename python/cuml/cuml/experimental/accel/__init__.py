@@ -15,28 +15,41 @@
 #
 
 
+import importlib
+
 from .magics import load_ipython_extension
 
-# from .profiler import Profiler
+from cuml.internals import logger
+from cuml.internals.global_settings import GlobalSettings
 
 __all__ = ["load_ipython_extension", "install"]
 
 
-LOADED = False
+def _install_for_library(library_name):
+    importlib.import_module(f"._wrappers.{library_name}", __name__)
 
 
 def install():
     """Enable cuML Accelerator Mode."""
-    from .module_accelerator import ModuleAccelerator
+    logger.set_level(logger.level_info)
+    logger.set_pattern("%v")
 
-    print("Installing cuML Accelerator...")
-    loader = ModuleAccelerator.install("sklearn", "cuml", "sklearn")
-    loader_umap = ModuleAccelerator.install("umap", "cuml", "umap")
-    loader_hdbscan = ModuleAccelerator.install("hdbscan", "cuml", "hdbscan")
-    global LOADED
-    LOADED = all(
-        var is not None for var in [loader, loader_umap, loader_hdbscan]
+
+    logger.info("cuML: Installing experimental accelerator...")
+    loader_sklearn = _install_for_library(library_name="sklearn")
+    loader_umap = _install_for_library(library_name="umap")
+    loader_hdbscan = _install_for_library(library_name="hdbscan")
+
+    GlobalSettings().accelerator_loaded = all(
+        [loader_sklearn, loader_umap, loader_hdbscan]
     )
+
+    GlobalSettings().accelerator_active = True
+
+    if GlobalSettings().accelerator_loaded:
+        logger.info("cuML: experimental accelerator succesfully initialized...")
+    else:
+        logger.info("cuML: experimental accelerator failed to initialize...")
 
 
 def pytest_load_initial_conftests(early_config, parser, args):

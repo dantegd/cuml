@@ -20,6 +20,7 @@ import os
 import inspect
 import numbers
 from importlib import import_module
+from cuml.internals.device_support import GPU_ENABLED
 from cuml.internals.safe_imports import (
     cpu_only_import,
     gpu_only_import_from,
@@ -201,10 +202,6 @@ class Base(TagsMixin,
         base.handle.sync()
         del base  # optional!
     """
-
-    _base_hyperparam_interop_translator = {
-        "n_jobs": "accept"
-    }
 
     _hyperparam_interop_translator = {}
 
@@ -483,37 +480,23 @@ class Base(TagsMixin,
         This method is meant to do checks and translations of hyperparameters
         at estimator creating time.
         Each children estimator can override the method, returning either
-        modifier **kwargs with equivalent options, or
+        modifier **kwargs with equivalent options, or setting gpuaccel to False
+        for hyperaparameters not supported by cuML yet. 
         """
-        gpu_hyperparams = cls._get_param_names()
-        kwargs.pop("self", None)
         gpuaccel = True
-        for arg, value in kwargs.items():
-
-            if arg in cls._base_hyperparam_interop_translator:
-                if cls._base_hyperparam_interop_translator[arg] == "accept":
-                    gpuaccel = gpuaccel and True
-
-            elif arg in cls._hyperparam_interop_translator:
-                if value in cls._hyperparam_interop_translator[arg]:
-                    if cls._hyperparam_interop_translator[arg][value] == "accept":
-                        gpuaccel = gpuaccel and True
-                    elif cls._hyperparam_interop_translator[arg][value] == "dispatch":
+        # Copy it so we can modify it
+        translations = dict(cls.__bases__[0]._hyperparam_interop_translator)
+        # Allow the derived class to overwrite the base class
+        translations.update(cls._hyperparam_interop_translator)
+        for parameter_name, value in kwargs.items():
+            # maybe clean up using: translations.get(parameter_name, {}).get(value, None)?
+            if parameter_name in translations:
+                if value in translations[parameter_name]:
+                    if translations[parameter_name][value] == "NotImplemented":
                         gpuaccel = False
                     else:
-                        kwargs[arg] = cls._hyperparam_interop_translator[arg][value]
-                        gpuaccel = gpuaccel and True
-                        # todo (dgd): improve message
-                        logger.warn("Value changed")
+                        kwargs[parameter_name] = translations[parameter_name][value]
 
-                else:
-                    gpuaccel = gpuaccel and True
-
-            # else:
-            #     gpuaccel = False
-
-        # we need to enable this if we enable translation for regular cuML
-        # kwargs["_gpuaccel"] = gpuaccel
         return kwargs, gpuaccel
 
 
@@ -729,12 +712,12 @@ class UniversalBase(Base):
         # device_type = cuml.global_settings.device_type
         device_type = self._dispatch_selector(func_name, *args, **kwargs)
 
-        logger.debug(f"device_type {device_type}")
-
-        # GPU case
-        if device_type == DeviceType.device or func_name not in ['fit', 'fit_transform', 'fit_predict']:
+        # For GPU systems, using the accelerator we always dispatch inference
+        if GPU_ENABLED and (
+            device_type == DeviceType.device or 
+            func_name not in ['fit', 'fit_transform', 'fit_predict']):
             # call the function from the GPU estimator
-            logger.debug(f"Performing {func_name} in GPU")
+            logger.info(f"cuML: Performing {func_name} in GPU")
             return gpu_func(self, *args, **kwargs)
 
         # CPU case
@@ -757,6 +740,7 @@ class UniversalBase(Base):
             # get the function from the GPU estimator
             cpu_func = getattr(self._cpu_model, func_name)
             # call the function from the GPU estimator
+            logger.info(f"cuML: Performing {func_name} in CPU")
             res = cpu_func(*args, **kwargs)
 
             # CPU training
