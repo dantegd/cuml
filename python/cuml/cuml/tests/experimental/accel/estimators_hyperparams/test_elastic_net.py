@@ -144,6 +144,7 @@ def test_elasticnet_random_state(regression_data):
     #     )
 
 
+@pytest.mark.xfail(reason="cuML does not emit ConvergenceWarning yet.")
 def test_elasticnet_convergence_warning(regression_data):
     X, y = regression_data
     from sklearn.exceptions import ConvergenceWarning

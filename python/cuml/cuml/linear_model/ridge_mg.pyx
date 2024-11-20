@@ -69,7 +69,8 @@ class RidgeMG(MGFitMixin, Ridge):
 
     @cuml.internals.api_base_return_any_skipall
     def _fit(self, X, y, coef_ptr, input_desc):
-
+        self.algo = self._get_algorithm_int(self.solver)
+        
         cdef float float_intercept
         cdef double double_intercept
         cdef handle_t* handle_ = <handle_t*><size_t>self.handle.getHandle()
